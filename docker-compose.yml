@@ -1,0 +1,97 @@
+services:
+  frontend:
+    build: ./services/frontend
+    ports:
+      - "8080:80"
+    networks:
+      - frontend-net
+    depends_on:
+      auth:
+        condition: service_healthy
+      tasks:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  auth:
+    build: ./services/auth
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgresql://auth:auth_pass@auth-db:5432/auth_db
+    networks:
+      - frontend-net
+      - auth-net
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  tasks:
+    build: ./services/tasks
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgresql://tasks:tasks_pass@tasks-db:5432/tasks_db
+    networks:
+      - frontend-net
+      - tasks-net
+    depends_on:
+      tasks-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=auth
+      - POSTGRES_PASSWORD=auth_pass
+      - POSTGRES_DB=auth_db
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - auth-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth -d auth_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  tasks-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=tasks
+      - POSTGRES_PASSWORD=tasks_pass
+      - POSTGRES_DB=tasks_db
+    volumes:
+      - tasks-db-data:/var/lib/postgresql/data
+    networks:
+      - tasks-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasks -d tasks_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  auth-db-data:
+  tasks-db-data:
+
+networks:
+  frontend-net:
+  auth-net:
+  tasks-net:
