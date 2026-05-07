@@ -44,3 +44,5 @@ tmp/
 .gsd/last-snapshot.md
 .gsd/notifications.jsonl
 .gsd/state-manifest.json
+test-results/
+playwright-report/
