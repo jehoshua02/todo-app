@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { logoutSession } from '../api/auth';
-import { fetchLists, createList, renameList, type TaskList } from '../api/tasks';
+import { fetchLists, createList, renameList, deleteList, type TaskList } from '../api/tasks';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -19,6 +19,9 @@ export default function Lists() {
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
@@ -139,6 +142,32 @@ export default function Lists() {
     if (e.key === 'Escape') cancelRename();
   }
 
+  function confirmDelete(listId: string) {
+    setConfirmingDeleteId(listId);
+    setDeleteError('');
+  }
+
+  function cancelDelete() {
+    setConfirmingDeleteId(null);
+    setDeleteError('');
+  }
+
+  async function handleDelete() {
+    if (!confirmingDeleteId) return;
+
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await deleteList(confirmingDeleteId);
+      setLists((prev) => prev.filter((l) => l.id !== confirmingDeleteId));
+      setConfirmingDeleteId(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete list');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -189,24 +218,61 @@ export default function Lists() {
                         <p className="text-red-600 text-xs mt-1" role="alert">{renameError}</p>
                       )}
                     </div>
+                  ) : confirmingDeleteId === list.id ? (
+                    <div className="px-4 py-3 flex items-center justify-between gap-2">
+                      <span className="text-gray-900 text-sm">Delete &ldquo;{list.name}&rdquo;?</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleDelete}
+                          disabled={isDeleting}
+                          aria-label="Confirm delete"
+                          className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 active:bg-red-800 disabled:opacity-50 transition-colors"
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                        <button
+                          onClick={cancelDelete}
+                          disabled={isDeleting}
+                          className="px-3 py-1.5 text-gray-500 text-sm hover:text-gray-700 active:text-gray-900 disabled:opacity-50 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {deleteError && (
+                        <p className="text-red-600 text-xs mt-1" role="alert">{deleteError}</p>
+                      )}
+                    </div>
                   ) : (
-                    <button
-                      className="w-full flex items-center justify-between px-4 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                      onClick={() => startRename(list)}
-                    >
-                      <span className="text-gray-900 font-medium">
-                        {list.name}
-                      </span>
-                      <svg
-                        className="w-5 h-5 text-gray-400 flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
+                    <div className="flex items-center">
+                      <button
+                        className="flex-1 flex items-center justify-between px-4 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                        onClick={() => startRename(list)}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                      </svg>
-                    </button>
+                        <span className="text-gray-900 font-medium">
+                          {list.name}
+                        </span>
+                        <svg
+                          className="w-5 h-5 text-gray-400 flex-shrink-0"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </button>
+                      {!list.isSystem && (
+                        <button
+                          onClick={() => confirmDelete(list.id)}
+                          aria-label={`Delete ${list.name}`}
+                          className="px-3 py-3 text-gray-400 hover:text-red-500 active:text-red-700 transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </li>
               ))}

@@ -53,3 +53,15 @@ export async function renameList(id: string, name: string): Promise<TaskList> {
   const data = await res.json();
   return data.list;
 }
+
+export async function deleteList(id: string): Promise<void> {
+  const res = await fetch(`/api/tasks/lists/${id}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to delete list');
+  }
+}

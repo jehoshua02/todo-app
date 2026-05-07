@@ -10,6 +10,7 @@ vi.mock('./db', () => ({
       count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
       aggregate: vi.fn(),
     },
   },
@@ -367,5 +368,68 @@ describe('PATCH /api/tasks/lists/:id', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
+  });
+});
+
+describe('DELETE /api/tasks/lists/:id', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app).delete('/api/tasks/lists/some-id');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when list does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/nonexistent')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when list belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'other-user', name: 'Shopping', isSystem: false, position: 1,
+    });
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 403 when deleting a system list', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'inbox-id', userId: 'user-1', name: 'Inbox', isSystem: true, position: 0,
+    });
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/inbox-id')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('System lists cannot be deleted');
+  });
+
+  it('deletes a non-system list', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Shopping', isSystem: false, position: 1,
+    });
+    mockPrisma.list.delete.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Shopping', isSystem: false, position: 1,
+    });
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(mockPrisma.list.delete).toHaveBeenCalledWith({
+      where: { id: 'list-1' },
+    });
   });
 });
