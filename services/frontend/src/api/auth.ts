@@ -49,6 +49,24 @@ export async function fetchLoginOptions(username: string): Promise<PublicKeyCred
   return res.json();
 }
 
+export async function refreshSession(): Promise<{ userId: string; username: string } | null> {
+  const res = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+
+  if (!res.ok) return null;
+
+  return res.json();
+}
+
+export async function logoutSession(): Promise<void> {
+  await fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+}
+
 export async function loginWithPasskey(username: string): Promise<{ userId: string; username: string }> {
   const options = await fetchLoginOptions(username);
   const credential = await startAuthentication({ optionsJSON: options });

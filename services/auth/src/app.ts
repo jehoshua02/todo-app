@@ -4,6 +4,7 @@ import { healthHandler } from './health';
 import { registerOptions, registerVerify } from './register';
 import { loginOptions, loginVerify } from './login';
 import { refresh } from './refresh';
+import { logout } from './logout';
 
 export const app = express();
 
@@ -16,3 +17,4 @@ app.post('/api/auth/register/verify', registerVerify);
 app.post('/api/auth/login', loginOptions);
 app.post('/api/auth/login/verify', loginVerify);
 app.post('/api/auth/refresh', refresh);
+app.post('/api/auth/logout', logout);

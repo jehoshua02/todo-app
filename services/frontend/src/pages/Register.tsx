@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { registerWithPasskey } from '../api/auth';
+import { useAuth } from '../auth/AuthContext';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -9,6 +10,10 @@ export default function Register() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { user, isLoading, login } = useAuth();
+
+  if (isLoading) return null;
+  if (user) return <Navigate to="/" replace />;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +25,8 @@ export default function Register() {
     try {
       const result = await registerWithPasskey(username.trim());
       setStatus('success');
-      navigate('/', { state: { username: result.username } });
+      login({ userId: result.userId, username: result.username });
+      navigate('/', { replace: true });
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Registration failed');
