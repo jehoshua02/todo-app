@@ -6,8 +6,10 @@ vi.mock('./db', () => ({
   prisma: {
     list: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       aggregate: vi.fn(),
     },
   },
@@ -244,6 +246,124 @@ describe('POST /api/tasks/lists', () => {
       .post('/api/tasks/lists')
       .set('Cookie', authCookie('user-1'))
       .send({ name: longName });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+});
+
+describe('PATCH /api/tasks/lists/:id', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .patch('/api/tasks/lists/some-id')
+      .send({ name: 'Renamed' });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when list does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/nonexistent')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'Renamed' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when list belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'other-user', name: 'Shopping', isSystem: false, position: 1,
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'Renamed' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 403 when renaming a system list', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'inbox-id', userId: 'user-1', name: 'Inbox', isSystem: true, position: 0,
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/inbox-id')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'My Inbox' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('System lists cannot be renamed');
+  });
+
+  it('renames a list with valid name', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Shopping', isSystem: false, position: 1,
+    });
+    mockPrisma.list.update.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Groceries', isSystem: false, position: 1, createdAt: new Date(),
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'Groceries' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.list.name).toBe('Groceries');
+    expect(mockPrisma.list.update).toHaveBeenCalledWith({
+      where: { id: 'list-1' },
+      data: { name: 'Groceries' },
+    });
+  });
+
+  it('trims whitespace from name', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Old', isSystem: false, position: 1,
+    });
+    mockPrisma.list.update.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'New', isSystem: false, position: 1, createdAt: new Date(),
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: '  New  ' });
+
+    expect(res.status).toBe(200);
+    expect(mockPrisma.list.update).toHaveBeenCalledWith({
+      where: { id: 'list-1' },
+      data: { name: 'New' },
+    });
+  });
+
+  it('returns 400 for empty name', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Shopping', isSystem: false, position: 1,
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('returns 400 for name exceeding 100 characters', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({
+      id: 'list-1', userId: 'user-1', name: 'Shopping', isSystem: false, position: 1,
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'a'.repeat(101) });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
