@@ -10,10 +10,10 @@
 - [x] **S03: S03** `risk:medium` `depends:[]`
   > After this: 
 
-- [ ] **S04: User can see their lists (task service bootstrap + Inbox)** `risk:high` `depends:[]`
+- [x] **S04: S04** `risk:high` `depends:[]`
   > After this: After registering and logging in, user sees a Lists screen with their auto-created Inbox. JWT middleware protects all task service endpoints. Polished mobile UI. E2E test proves it.
 
-- [ ] **S05: User can create a list** `risk:medium` `depends:[S04]`
+- [x] **S05: S05** `risk:medium` `depends:[]`
   > After this: User taps 'New List', enters a name, and sees it appear alongside Inbox. E2E test covers creation.
 
 - [ ] **S06: User can rename a list** `risk:low` `depends:[S05]`

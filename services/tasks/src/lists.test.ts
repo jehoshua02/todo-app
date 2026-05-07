@@ -8,6 +8,7 @@ vi.mock('./db', () => ({
       findMany: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
+      aggregate: vi.fn(),
     },
   },
 }));
@@ -109,7 +110,7 @@ describe('GET /api/tasks/lists', () => {
     expect(findCall.where.userId).toBe('user-a');
   });
 
-  it('returns lists ordered by position', async () => {
+  it('returns lists ordered by position ascending', async () => {
     mockPrisma.list.count.mockResolvedValue(3);
     mockPrisma.list.findMany.mockResolvedValue([
       { id: '1', userId: 'user-3', name: 'Inbox', isSystem: true, position: 0, createdAt: new Date() },
@@ -125,5 +126,126 @@ describe('GET /api/tasks/lists', () => {
 
     const findCall = mockPrisma.list.findMany.mock.calls[0][0];
     expect(findCall.orderBy).toEqual({ position: 'asc' });
+  });
+});
+
+describe('POST /api/tasks/lists', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .send({ name: 'Shopping' });
+    expect(res.status).toBe(401);
+  });
+
+  it('creates a list with valid name and auto-assigned position', async () => {
+    mockPrisma.list.aggregate.mockResolvedValue({ _max: { position: 2 } });
+    mockPrisma.list.create.mockResolvedValue({
+      id: 'new-list-id',
+      userId: 'user-1',
+      name: 'Shopping',
+      isSystem: false,
+      position: 3,
+      createdAt: new Date('2026-01-01'),
+    });
+
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'Shopping' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.list.name).toBe('Shopping');
+    expect(res.body.list.position).toBe(3);
+    expect(res.body.list.isSystem).toBe(false);
+
+    expect(mockPrisma.list.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        name: 'Shopping',
+        isSystem: false,
+        position: 3,
+      }),
+    });
+  });
+
+  it('trims whitespace from name', async () => {
+    mockPrisma.list.aggregate.mockResolvedValue({ _max: { position: 0 } });
+    mockPrisma.list.create.mockResolvedValue({
+      id: 'new-id',
+      userId: 'user-1',
+      name: 'Groceries',
+      isSystem: false,
+      position: 1,
+      createdAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: '  Groceries  ' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.list.name).toBe('Groceries');
+  });
+
+  it('assigns position 1 when user has no lists', async () => {
+    mockPrisma.list.aggregate.mockResolvedValue({ _max: { position: null } });
+    mockPrisma.list.create.mockResolvedValue({
+      id: 'new-id',
+      userId: 'user-1',
+      name: 'First',
+      isSystem: false,
+      position: 1,
+      createdAt: new Date(),
+    });
+
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: 'First' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.list.position).toBe(1);
+  });
+
+  it('returns 400 for empty name', async () => {
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('returns 400 for whitespace-only name', async () => {
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: '   ' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('returns 400 for missing name', async () => {
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('returns 400 for name exceeding 100 characters', async () => {
+    const longName = 'a'.repeat(101);
+    const res = await request(app)
+      .post('/api/tasks/lists')
+      .set('Cookie', authCookie('user-1'))
+      .send({ name: longName });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
   });
 });
