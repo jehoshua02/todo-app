@@ -82,3 +82,43 @@ export async function deleteList(id: string): Promise<void> {
     throw new Error(body.error || 'Failed to delete list');
   }
 }
+
+export interface Task {
+  id: string;
+  listId: string;
+  userId: string;
+  title: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+export async function fetchTasks(listId: string): Promise<Task[]> {
+  const res = await fetch(`/api/tasks/lists/${listId}/tasks`, {
+    credentials: 'same-origin',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to fetch tasks');
+  }
+
+  const data = await res.json();
+  return data.tasks;
+}
+
+export async function createTask(listId: string, title: string): Promise<Task> {
+  const res = await fetch(`/api/tasks/lists/${listId}/tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ title }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to create task');
+  }
+
+  const data = await res.json();
+  return data.task;
+}

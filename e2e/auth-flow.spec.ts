@@ -174,8 +174,8 @@ test.describe("Auth + Lists flow", () => {
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Old Name")).toBeVisible({ timeout: 5_000 });
 
-    // Click the list name to start renaming
-    await page.getByText("Old Name").click();
+    // Click the rename button to start renaming
+    await page.getByLabel("Rename Old Name").click();
 
     // Should show rename input
     const renameInput = page.getByLabel("Rename list");
@@ -195,12 +195,8 @@ test.describe("Auth + Lists flow", () => {
       path: `e2e/screenshots/${testInfo.project.name}/lists-after-rename.png`,
     });
 
-    // Verify Inbox cannot be renamed — clicking it should not produce a rename input
-    await page.getByText("Inbox").click();
-    await expect(page.getByLabel("Rename list")).not.toBeVisible();
-
-    // Inbox should still be visible as text
-    await expect(page.getByText("Inbox")).toBeVisible();
+    // Verify Inbox has no rename button (system lists cannot be renamed)
+    await expect(page.getByLabel("Rename Inbox")).not.toBeVisible();
   });
 
   test("user can delete a list but not Inbox", async ({ page }, testInfo) => {
@@ -311,6 +307,66 @@ test.describe("Auth + Lists flow", () => {
 
     // Verify down button is disabled for the last item
     await expect(page.getByLabel("Move Work down")).toBeDisabled();
+  });
+
+  test("user can create a task in a list", async ({ page }, testInfo) => {
+    const taskUser = `e2e-task-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(taskUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Inbox")).toBeVisible();
+
+    // Navigate into Inbox
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Should show empty state
+    await expect(page.getByText("No tasks yet")).toBeVisible();
+
+    // Screenshot: empty task list
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-empty.png`,
+    });
+
+    // Create a task
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Buy milk");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    // Task should appear
+    await expect(page.getByText("Buy milk")).toBeVisible({ timeout: 5_000 });
+
+    // Create a second task
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Walk the dog");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByText("Walk the dog")).toBeVisible({ timeout: 5_000 });
+
+    // Screenshot: tasks in list
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-created.png`,
+    });
+
+    // Verify tasks persist after refresh
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Buy milk")).toBeVisible();
+    await expect(page.getByText("Walk the dog")).toBeVisible();
+
+    // Navigate back to lists
+    await page.getByLabel("Back to lists").click();
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("user can create a new list", async ({ page }, testInfo) => {

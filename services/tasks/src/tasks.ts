@@ -1,0 +1,63 @@
+import { Router, Request, Response } from 'express';
+import { prisma } from './db';
+
+export const tasksRouter = Router({ mergeParams: true });
+
+function validateTitle(title: unknown): { valid: true; title: string } | { valid: false; error: string } {
+  if (typeof title !== 'string' || title.trim().length === 0) {
+    return { valid: false, error: 'Title is required' };
+  }
+  const trimmed = title.trim();
+  if (trimmed.length > 500) {
+    return { valid: false, error: 'Title must be 500 characters or less' };
+  }
+  return { valid: true, title: trimmed };
+}
+
+async function findUserList(listId: string, userId: string) {
+  const list = await prisma.list.findUnique({ where: { id: listId } });
+  if (!list || list.userId !== userId) return null;
+  return list;
+}
+
+async function getTasks(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const { listId } = req.params;
+
+  const list = await findUserList(listId, userId);
+  if (!list) {
+    res.status(404).json({ error: 'List not found' });
+    return;
+  }
+
+  const tasks = await prisma.task.findMany({
+    where: { listId, userId },
+    orderBy: { createdAt: 'asc' },
+  });
+  res.json({ tasks });
+}
+
+async function createTask(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const { listId } = req.params;
+
+  const list = await findUserList(listId, userId);
+  if (!list) {
+    res.status(404).json({ error: 'List not found' });
+    return;
+  }
+
+  const validation = validateTitle(req.body.title);
+  if (!validation.valid) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  const task = await prisma.task.create({
+    data: { listId, userId, title: validation.title },
+  });
+  res.status(201).json({ task });
+}
+
+tasksRouter.get('/', getTasks);
+tasksRouter.post('/', createTask);
