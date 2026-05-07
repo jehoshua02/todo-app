@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model List {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  isSystem  Boolean  @default(false) @map("is_system")
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("lists")
+}
