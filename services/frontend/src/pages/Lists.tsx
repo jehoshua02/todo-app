@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { logoutSession } from '../api/auth';
-import { fetchLists, type TaskList } from '../api/tasks';
+import { fetchLists, createList, type TaskList } from '../api/tasks';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -11,6 +11,11 @@ export default function Lists() {
   const [lists, setLists] = useState<TaskList[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [error, setError] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -25,6 +30,10 @@ export default function Lists() {
         setLoadState('error');
       });
   }, [user]);
+
+  useEffect(() => {
+    if (isCreating) inputRef.current?.focus();
+  }, [isCreating]);
 
   if (authLoading) {
     return (
@@ -41,6 +50,41 @@ export default function Lists() {
   async function handleLogout() {
     await logoutSession();
     logout();
+  }
+
+  function handleNewListClick() {
+    setIsCreating(true);
+    setNewName('');
+    setCreateError('');
+  }
+
+  function handleCancelCreate() {
+    setIsCreating(false);
+    setNewName('');
+    setCreateError('');
+  }
+
+  async function handleSaveList() {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    setIsSaving(true);
+    setCreateError('');
+    try {
+      const list = await createList(trimmed);
+      setLists((prev) => [...prev, list]);
+      setIsCreating(false);
+      setNewName('');
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create list');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') handleSaveList();
+    if (e.key === 'Escape') handleCancelCreate();
   }
 
   return (
@@ -69,28 +113,80 @@ export default function Lists() {
         )}
 
         {loadState === 'ready' && (
-          <ul className="divide-y divide-gray-200 bg-white mt-2 rounded-lg mx-4 shadow-sm border border-gray-200">
-            {lists.map((list) => (
-              <li key={list.id}>
-                <button
-                  className="w-full flex items-center justify-between px-4 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                >
-                  <span className="text-gray-900 font-medium">
-                    {list.name}
-                  </span>
-                  <svg
-                    className="w-5 h-5 text-gray-400 flex-shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
+          <>
+            <ul className="divide-y divide-gray-200 bg-white mt-2 rounded-lg mx-4 shadow-sm border border-gray-200">
+              {lists.map((list) => (
+                <li key={list.id}>
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    <span className="text-gray-900 font-medium">
+                      {list.name}
+                    </span>
+                    <svg
+                      className="w-5 h-5 text-gray-400 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+
+              {isCreating && (
+                <li className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="List name"
+                      maxLength={100}
+                      disabled={isSaving}
+                      aria-label="New list name"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                    />
+                    <button
+                      onClick={handleSaveList}
+                      disabled={isSaving || !newName.trim()}
+                      className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={handleCancelCreate}
+                      disabled={isSaving}
+                      className="px-3 py-2 text-gray-500 text-sm hover:text-gray-700 active:text-gray-900 disabled:opacity-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {createError && (
+                    <p className="text-red-600 text-xs mt-1" role="alert">{createError}</p>
+                  )}
+                </li>
+              )}
+            </ul>
+
+            {!isCreating && (
+              <div className="mx-4 mt-3">
+                <button
+                  onClick={handleNewListClick}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] text-blue-600 font-medium text-sm bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
+                  New List
                 </button>
-              </li>
-            ))}
-          </ul>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
