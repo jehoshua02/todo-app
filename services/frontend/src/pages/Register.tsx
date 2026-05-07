@@ -18,9 +18,9 @@ export default function Register() {
     setError('');
 
     try {
-      await registerWithPasskey(username.trim());
+      const result = await registerWithPasskey(username.trim());
       setStatus('success');
-      navigate('/');
+      navigate('/', { state: { username: result.username } });
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Registration failed');

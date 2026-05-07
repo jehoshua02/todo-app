@@ -18,9 +18,9 @@ export default function Login() {
     setError('');
 
     try {
-      await loginWithPasskey(username.trim());
+      const result = await loginWithPasskey(username.trim());
       setStatus('success');
-      navigate('/');
+      navigate('/', { state: { username: result.username } });
     } catch (err) {
       setStatus('error');
       setError(err instanceof Error ? err.message : 'Login failed');
