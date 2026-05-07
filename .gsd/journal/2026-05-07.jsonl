@@ -1,0 +1,9 @@
+{"ts":"2026-05-07T08:08:07.884Z","flowId":"3ab6a765-cc72-4c17-b28b-22f0fe1113ae","seq":0,"eventType":"worktree-enter","data":{"milestoneId":"M001","wtPath":"/home/dev/repos/todo-app/.gsd/worktrees/M001","created":true}}
+{"ts":"2026-05-07T08:08:07.886Z","flowId":"0508ff81-d040-44f9-beb2-9050f89bb0a6","seq":0,"eventType":"worktree-created","data":{"milestoneId":"M001","startedAt":"2026-05-07T08:08:07.886Z","reason":"create-milestone"}}
+{"ts":"2026-05-07T08:08:07.904Z","flowId":"auto-orchestrator-1778141287895","seq":1,"eventType":"iteration-start","data":{"source":"auto-orchestrator","name":"start"}}
+{"ts":"2026-05-07T08:08:08.040Z","flowId":"auto-orchestrator-1778141287895","seq":2,"eventType":"dispatch-stop","data":{"source":"auto-orchestrator","name":"advance-stopped","reason":"no remaining units"}}
+{"ts":"2026-05-07T08:08:08.061Z","flowId":"eacf00d1-4bca-40b6-a067-5f063fa4f949","seq":1,"eventType":"iteration-start","data":{"iteration":1}}
+{"ts":"2026-05-07T08:08:08.223Z","flowId":"eacf00d1-4bca-40b6-a067-5f063fa4f949","seq":2,"eventType":"dispatch-match","rule":"validating-milestone → validate-milestone","data":{"unitType":"validate-milestone","unitId":"M001"}}
+{"ts":"2026-05-07T08:08:08.233Z","flowId":"eacf00d1-4bca-40b6-a067-5f063fa4f949","seq":3,"eventType":"unit-start","data":{"unitType":"validate-milestone","unitId":"M001"}}
+{"ts":"2026-05-07T08:13:48.568Z","flowId":"4b1f2ff3-2c7f-4e54-9f91-3810b1c7ece8","seq":0,"eventType":"canonical-root-redirect","data":{"milestoneId":"M001","redirectedTo":"/home/dev/repos/todo-app/.gsd/worktrees/M001"}}
+{"ts":"2026-05-07T08:15:18.584Z","flowId":"eacf00d1-4bca-40b6-a067-5f063fa4f949","seq":4,"eventType":"unit-end","data":{"unitType":"validate-milestone","unitId":"M001","status":"completed","artifactVerified":true},"causedBy":{"flowId":"eacf00d1-4bca-40b6-a067-5f063fa4f949","seq":3}}

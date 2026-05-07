@@ -1,7 +1,7 @@
 # Codebase Map
 
-Generated: 2026-05-07T07:36:09Z | Files: 52 | Described: 0/52
-<!-- gsd:codebase-meta {"generatedAt":"2026-05-07T07:36:09Z","fingerprint":"15225894ffa6a383cea3c1ba71be1289b4dab0f7","fileCount":52,"truncated":false} -->
+Generated: 2026-05-07T08:39:25Z | Files: 58 | Described: 0/58
+<!-- gsd:codebase-meta {"generatedAt":"2026-05-07T08:39:25Z","fingerprint":"0dcbedb20150972a3183486e9fdfc6b12f5771bb","fileCount":58,"truncated":false} -->
 
 ### (root)/
 - `.env.example`
@@ -36,6 +36,8 @@ Generated: 2026-05-07T07:36:09Z | Files: 52 | Described: 0/52
 - `services/auth/src/index.ts`
 - `services/auth/src/login.test.ts`
 - `services/auth/src/login.ts`
+- `services/auth/src/logout.test.ts`
+- `services/auth/src/logout.ts`
 - `services/auth/src/refresh.test.ts`
 - `services/auth/src/refresh.ts`
 - `services/auth/src/register.test.ts`
@@ -60,9 +62,15 @@ Generated: 2026-05-07T07:36:09Z | Files: 52 | Described: 0/52
 - `services/frontend/src/App.tsx`
 - `services/frontend/src/index.css`
 - `services/frontend/src/main.tsx`
+- `services/frontend/src/test-setup.ts`
 
 ### services/frontend/src/api/
+- `services/frontend/src/api/auth.test.ts`
 - `services/frontend/src/api/auth.ts`
+
+### services/frontend/src/auth/
+- `services/frontend/src/auth/AuthContext.test.tsx`
+- `services/frontend/src/auth/AuthContext.tsx`
 
 ### services/frontend/src/pages/
 - `services/frontend/src/pages/Home.tsx`
