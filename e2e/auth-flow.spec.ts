@@ -203,6 +203,51 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Inbox")).toBeVisible();
   });
 
+  test("user can delete a list but not Inbox", async ({ page }, testInfo) => {
+    const deleteUser = `e2e-delete-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(deleteUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Inbox")).toBeVisible();
+
+    // Create a list to delete
+    await page.getByRole("button", { name: "New List" }).click();
+    await page.getByLabel("New list name").fill("To Delete");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("To Delete")).toBeVisible({ timeout: 5_000 });
+
+    const listItems = page.locator("ul > li");
+    await expect(listItems).toHaveCount(2);
+
+    // Inbox should not have a delete button
+    await expect(page.getByLabel("Delete Inbox")).not.toBeVisible();
+
+    // Click delete button on the created list
+    await page.getByLabel("Delete To Delete").click();
+
+    // Confirmation should appear
+    await expect(page.getByText('Delete “To Delete”?')).toBeVisible();
+
+    // Confirm deletion
+    await page.getByLabel("Confirm delete").click();
+
+    // List should be removed
+    await expect(page.getByText("To Delete")).not.toBeVisible({ timeout: 5_000 });
+    await expect(listItems).toHaveCount(1);
+
+    // Inbox should still be there
+    await expect(page.getByText("Inbox")).toBeVisible();
+
+    // Screenshot: after delete
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/lists-after-delete.png`,
+    });
+  });
+
   test("user can create a new list", async ({ page }, testInfo) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;

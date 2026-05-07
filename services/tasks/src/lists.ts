@@ -87,6 +87,23 @@ async function createList(req: Request, res: Response): Promise<void> {
   res.status(201).json({ list });
 }
 
+async function deleteList(req: Request, res: Response): Promise<void> {
+  const list = await findUserList(req.params.id, req.userId!);
+  if (!list) {
+    res.status(404).json({ error: 'List not found' });
+    return;
+  }
+
+  if (list.isSystem) {
+    res.status(403).json({ error: 'System lists cannot be deleted' });
+    return;
+  }
+
+  await prisma.list.delete({ where: { id: list.id } });
+  res.json({ success: true });
+}
+
 listsRouter.get('/', getLists);
 listsRouter.post('/', createList);
 listsRouter.patch('/:id', renameList);
+listsRouter.delete('/:id', deleteList);
