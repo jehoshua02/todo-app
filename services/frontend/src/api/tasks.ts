@@ -54,6 +54,23 @@ export async function renameList(id: string, name: string): Promise<TaskList> {
   return data.list;
 }
 
+export async function reorderLists(listIds: string[]): Promise<TaskList[]> {
+  const res = await fetch('/api/tasks/lists/reorder', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ listIds }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to reorder lists');
+  }
+
+  const data = await res.json();
+  return data.lists;
+}
+
 export async function deleteList(id: string): Promise<void> {
   const res = await fetch(`/api/tasks/lists/${id}`, {
     method: 'DELETE',

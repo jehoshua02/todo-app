@@ -13,6 +13,7 @@ vi.mock('./db', () => ({
       delete: vi.fn(),
       aggregate: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -431,5 +432,94 @@ describe('DELETE /api/tasks/lists/:id', () => {
     expect(mockPrisma.list.delete).toHaveBeenCalledWith({
       where: { id: 'list-1' },
     });
+  });
+});
+
+describe('PUT /api/tasks/lists/reorder', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .send({ listIds: ['a', 'b'] });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for missing listIds', async () => {
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/listIds/);
+  });
+
+  it('returns 400 for empty listIds array', async () => {
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ listIds: [] });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/non-empty/);
+  });
+
+  it('returns 400 for duplicate listIds', async () => {
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ listIds: ['a', 'a'] });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Duplicate/);
+  });
+
+  it('returns 400 when listIds do not match user lists', async () => {
+    mockPrisma.list.findMany.mockResolvedValue([
+      { id: 'inbox' },
+      { id: 'work' },
+    ]);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ listIds: ['inbox', 'unknown'] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/user lists/);
+  });
+
+  it('returns 400 when listIds count does not match', async () => {
+    mockPrisma.list.findMany.mockResolvedValue([
+      { id: 'inbox' },
+      { id: 'work' },
+      { id: 'personal' },
+    ]);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ listIds: ['inbox', 'work'] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/all user lists/);
+  });
+
+  it('reorders lists and returns updated order', async () => {
+    mockPrisma.list.findMany
+      .mockResolvedValueOnce([{ id: 'inbox' }, { id: 'work' }, { id: 'personal' }])
+      .mockResolvedValueOnce([
+        { id: 'personal', userId: 'user-1', name: 'Personal', isSystem: false, position: 0, createdAt: new Date() },
+        { id: 'inbox', userId: 'user-1', name: 'Inbox', isSystem: true, position: 1, createdAt: new Date() },
+        { id: 'work', userId: 'user-1', name: 'Work', isSystem: false, position: 2, createdAt: new Date() },
+      ]);
+    mockPrisma.list.update.mockResolvedValue({});
+    mockPrisma.$transaction.mockResolvedValue([]);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ listIds: ['personal', 'inbox', 'work'] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.lists).toHaveLength(3);
+    expect(res.body.lists[0].name).toBe('Personal');
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
   });
 });

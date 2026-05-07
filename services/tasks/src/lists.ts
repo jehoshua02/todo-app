@@ -87,6 +87,57 @@ async function createList(req: Request, res: Response): Promise<void> {
   res.status(201).json({ list });
 }
 
+function validateListIds(listIds: unknown): { valid: true; ids: string[] } | { valid: false; error: string } {
+  if (!Array.isArray(listIds) || listIds.length === 0) {
+    return { valid: false, error: 'listIds must be a non-empty array' };
+  }
+  if (!listIds.every((id) => typeof id === 'string' && id.length > 0)) {
+    return { valid: false, error: 'Each listId must be a non-empty string' };
+  }
+  const unique = new Set(listIds);
+  if (unique.size !== listIds.length) {
+    return { valid: false, error: 'Duplicate listIds are not allowed' };
+  }
+  return { valid: true, ids: listIds };
+}
+
+async function reorderLists(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const validation = validateListIds(req.body.listIds);
+  if (!validation.valid) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  const userLists = await prisma.list.findMany({
+    where: { userId },
+    select: { id: true },
+  });
+  const userListIds = new Set(userLists.map((l) => l.id));
+
+  if (validation.ids.length !== userListIds.size) {
+    res.status(400).json({ error: 'listIds must include all user lists' });
+    return;
+  }
+  for (const id of validation.ids) {
+    if (!userListIds.has(id)) {
+      res.status(400).json({ error: 'listIds must include only user lists' });
+      return;
+    }
+  }
+
+  const updates = validation.ids.map((id, index) =>
+    prisma.list.update({ where: { id }, data: { position: index } })
+  );
+  await prisma.$transaction(updates);
+
+  const lists = await prisma.list.findMany({
+    where: { userId },
+    orderBy: { position: 'asc' },
+  });
+  res.json({ lists });
+}
+
 async function deleteList(req: Request, res: Response): Promise<void> {
   const list = await findUserList(req.params.id, req.userId!);
   if (!list) {
@@ -105,5 +156,6 @@ async function deleteList(req: Request, res: Response): Promise<void> {
 
 listsRouter.get('/', getLists);
 listsRouter.post('/', createList);
+listsRouter.put('/reorder', reorderLists);
 listsRouter.patch('/:id', renameList);
 listsRouter.delete('/:id', deleteList);

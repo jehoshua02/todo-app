@@ -248,6 +248,71 @@ test.describe("Auth + Lists flow", () => {
     });
   });
 
+  test("user can reorder lists and order persists after refresh", async ({ page }, testInfo) => {
+    const reorderUser = `e2e-reorder-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(reorderUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Inbox")).toBeVisible();
+
+    // Create two lists: Work and Personal
+    await page.getByRole("button", { name: "New List" }).click();
+    await page.getByLabel("New list name").fill("Work");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Work")).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole("button", { name: "New List" }).click();
+    await page.getByLabel("New list name").fill("Personal");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Personal")).toBeVisible({ timeout: 5_000 });
+
+    // Order should be: Inbox (0), Work (1), Personal (2)
+    const listItems = page.locator("ul > li");
+    await expect(listItems).toHaveCount(3);
+    await expect(listItems.nth(0)).toContainText("Inbox");
+    await expect(listItems.nth(1)).toContainText("Work");
+    await expect(listItems.nth(2)).toContainText("Personal");
+
+    // Move Personal up — it should swap with Work
+    await page.getByLabel("Move Personal up").click();
+
+    // Wait for reorder to settle
+    await expect(listItems.nth(1)).toContainText("Personal", { timeout: 5_000 });
+    await expect(listItems.nth(2)).toContainText("Work");
+
+    // Screenshot: after reorder
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/lists-after-reorder.png`,
+    });
+
+    // Refresh and verify order persists
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    const refreshedItems = page.locator("ul > li");
+    await expect(refreshedItems).toHaveCount(3);
+    await expect(refreshedItems.nth(0)).toContainText("Inbox");
+    await expect(refreshedItems.nth(1)).toContainText("Personal");
+    await expect(refreshedItems.nth(2)).toContainText("Work");
+
+    // Move Inbox down — it should swap with Personal
+    await page.getByLabel("Move Inbox down").click();
+    await expect(refreshedItems.nth(0)).toContainText("Personal", { timeout: 5_000 });
+    await expect(refreshedItems.nth(1)).toContainText("Inbox");
+
+    // Verify up button is disabled for the first item
+    await expect(page.getByLabel("Move Personal up")).toBeDisabled();
+
+    // Verify down button is disabled for the last item
+    await expect(page.getByLabel("Move Work down")).toBeDisabled();
+  });
+
   test("user can create a new list", async ({ page }, testInfo) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;
