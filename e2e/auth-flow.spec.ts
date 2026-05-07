@@ -26,7 +26,7 @@ test.describe("Auth + Lists flow", () => {
 
   test("user can register, see Inbox, logout, and login again", async ({
     page,
-  }) => {
+  }, testInfo) => {
     // --- Register ---
     await page.goto("/register");
     await expect(
@@ -43,7 +43,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Inbox")).toBeVisible();
 
     // Screenshot: lists page after registration
-    await page.screenshot({ path: "e2e/screenshots/lists-after-register.png" });
+    await page.screenshot({ path: `e2e/screenshots/${testInfo.project.name}/lists-after-register.png` });
 
     // --- Logout ---
     await page.getByRole("button", { name: "Sign out" }).click();
@@ -59,7 +59,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Inbox")).toBeVisible();
 
     // Screenshot: lists page after login
-    await page.screenshot({ path: "e2e/screenshots/lists-after-login.png" });
+    await page.screenshot({ path: `e2e/screenshots/${testInfo.project.name}/lists-after-login.png` });
   });
 
   test("session persists across page refresh", async ({ page }) => {
@@ -112,7 +112,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(listItems.first()).toContainText("Inbox");
   });
 
-  test("registering a duplicate username shows an error", async ({ page }) => {
+  test("registering a duplicate username shows an error", async ({ page }, testInfo) => {
     // Register the first user
     const dupUser = `e2e-dup-${Date.now()}`;
     await page.goto("/register");
@@ -136,13 +136,13 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByRole("heading", { name: "Create account" })).toBeVisible();
 
     await page.screenshot({
-      path: "e2e/screenshots/register-duplicate-error.png",
+      path: `e2e/screenshots/${testInfo.project.name}/register-duplicate-error.png`,
     });
   });
 
   test("logging in with an unknown username shows an error", async ({
     page,
-  }) => {
+  }, testInfo) => {
     const unknownUser = `e2e-unknown-${Date.now()}`;
     await page.goto("/login");
     await page.getByLabel("Username").fill(unknownUser);
@@ -153,7 +153,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 
     await page.screenshot({
-      path: "e2e/screenshots/login-unknown-error.png",
+      path: `e2e/screenshots/${testInfo.project.name}/login-unknown-error.png`,
     });
   });
 });

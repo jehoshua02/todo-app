@@ -40,7 +40,7 @@ tmp/
 .gsd/audit/events.jsonl
 .gsd/event-log.jsonl
 .gsd/graphs/graph.json
-.gsd/journal/2026-05-06.jsonl
+.gsd/journal/
 .gsd/last-snapshot.md
 .gsd/notifications.jsonl
 .gsd/state-manifest.json
