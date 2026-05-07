@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { logoutSession } from '../api/auth';
 import { fetchLists, createList, renameList, deleteList, reorderLists, type TaskList } from '../api/tasks';
@@ -8,6 +8,7 @@ type LoadState = 'loading' | 'ready' | 'error';
 
 export default function Lists() {
   const { user, isLoading: authLoading, logout } = useAuth();
+  const navigate = useNavigate();
   const [lists, setLists] = useState<TaskList[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [error, setError] = useState('');
@@ -291,7 +292,7 @@ export default function Lists() {
                       </div>
                       <button
                         className="flex-1 flex items-center justify-between px-2 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                        onClick={() => startRename(list)}
+                        onClick={() => navigate(`/lists/${list.id}`)}
                       >
                         <span className="text-gray-900 font-medium">
                           {list.name}
@@ -307,15 +308,26 @@ export default function Lists() {
                         </svg>
                       </button>
                       {!list.isSystem && (
-                        <button
-                          onClick={() => confirmDelete(list.id)}
-                          aria-label={`Delete ${list.name}`}
-                          className="px-3 py-3 text-gray-400 hover:text-red-500 active:text-red-700 transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                          </svg>
-                        </button>
+                        <>
+                          <button
+                            onClick={() => startRename(list)}
+                            aria-label={`Rename ${list.name}`}
+                            className="px-2 py-3 text-gray-400 hover:text-gray-600 active:text-gray-800 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => confirmDelete(list.id)}
+                            aria-label={`Delete ${list.name}`}
+                            className="px-2 py-3 text-gray-400 hover:text-red-500 active:text-red-700 transition-colors"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </button>
+                        </>
                       )}
                     </div>
                   )}

@@ -2,6 +2,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import { healthHandler } from './health';
 import { listsRouter } from './lists';
+import { tasksRouter } from './tasks';
 import { requireAuth } from './auth';
 
 export const app = express();
@@ -13,3 +14,4 @@ const jwtSecret = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 app.get('/health', healthHandler);
 app.use('/api/tasks/lists', requireAuth(jwtSecret), listsRouter);
+app.use('/api/tasks/lists/:listId/tasks', requireAuth(jwtSecret), tasksRouter);
