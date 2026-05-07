@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import { healthHandler } from './health';
 import { registerOptions, registerVerify } from './register';
 import { loginOptions, loginVerify } from './login';
+import { refresh } from './refresh';
 
 export const app = express();
 
@@ -14,3 +15,4 @@ app.post('/api/auth/register', registerOptions);
 app.post('/api/auth/register/verify', registerVerify);
 app.post('/api/auth/login', loginOptions);
 app.post('/api/auth/login/verify', loginVerify);
+app.post('/api/auth/refresh', refresh);
