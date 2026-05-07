@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
-import Home from './pages/Home';
+import Lists from './pages/Lists';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -10,7 +10,7 @@ export default function App() {
       <AuthProvider>
         <main className="min-h-screen bg-gray-50">
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<Lists />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
