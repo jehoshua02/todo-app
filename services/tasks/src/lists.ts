@@ -41,6 +41,37 @@ async function nextPosition(userId: string): Promise<number> {
   return (result._max.position ?? 0) + 1;
 }
 
+async function findUserList(listId: string, userId: string) {
+  const list = await prisma.list.findUnique({ where: { id: listId } });
+  if (!list || list.userId !== userId) return null;
+  return list;
+}
+
+async function renameList(req: Request, res: Response): Promise<void> {
+  const list = await findUserList(req.params.id, req.userId!);
+  if (!list) {
+    res.status(404).json({ error: 'List not found' });
+    return;
+  }
+
+  if (list.isSystem) {
+    res.status(403).json({ error: 'System lists cannot be renamed' });
+    return;
+  }
+
+  const validation = validateListName(req.body.name);
+  if (!validation.valid) {
+    res.status(400).json({ error: validation.error });
+    return;
+  }
+
+  const updated = await prisma.list.update({
+    where: { id: list.id },
+    data: { name: validation.name },
+  });
+  res.json({ list: updated });
+}
+
 async function createList(req: Request, res: Response): Promise<void> {
   const validation = validateListName(req.body.name);
   if (!validation.valid) {
@@ -58,3 +89,4 @@ async function createList(req: Request, res: Response): Promise<void> {
 
 listsRouter.get('/', getLists);
 listsRouter.post('/', createList);
+listsRouter.patch('/:id', renameList);

@@ -157,6 +157,52 @@ test.describe("Auth + Lists flow", () => {
     });
   });
 
+  test("user can rename a list but not Inbox", async ({ page }, testInfo) => {
+    const renameUser = `e2e-rename-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(renameUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Inbox")).toBeVisible();
+
+    // Create a list to rename
+    await page.getByRole("button", { name: "New List" }).click();
+    await page.getByLabel("New list name").fill("Old Name");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Old Name")).toBeVisible({ timeout: 5_000 });
+
+    // Click the list name to start renaming
+    await page.getByText("Old Name").click();
+
+    // Should show rename input
+    const renameInput = page.getByLabel("Rename list");
+    await expect(renameInput).toBeVisible();
+    await expect(renameInput).toHaveValue("Old Name");
+
+    // Clear and type new name, then press Enter
+    await renameInput.fill("New Name");
+    await renameInput.press("Enter");
+
+    // Should show the new name
+    await expect(page.getByText("New Name")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Old Name")).not.toBeVisible();
+
+    // Screenshot: after rename
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/lists-after-rename.png`,
+    });
+
+    // Verify Inbox cannot be renamed — clicking it should not produce a rename input
+    await page.getByText("Inbox").click();
+    await expect(page.getByLabel("Rename list")).not.toBeVisible();
+
+    // Inbox should still be visible as text
+    await expect(page.getByText("Inbox")).toBeVisible();
+  });
+
   test("user can create a new list", async ({ page }, testInfo) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;

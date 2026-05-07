@@ -36,3 +36,20 @@ export async function createList(name: string): Promise<TaskList> {
   const data = await res.json();
   return data.list;
 }
+
+export async function renameList(id: string, name: string): Promise<TaskList> {
+  const res = await fetch(`/api/tasks/lists/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ name }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to rename list');
+  }
+
+  const data = await res.json();
+  return data.list;
+}
