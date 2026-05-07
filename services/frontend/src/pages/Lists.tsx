@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { logoutSession } from '../api/auth';
-import { fetchLists, createList, renameList, deleteList, type TaskList } from '../api/tasks';
+import { fetchLists, createList, renameList, deleteList, reorderLists, type TaskList } from '../api/tasks';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -22,6 +22,7 @@ export default function Lists() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [isReordering, setIsReordering] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,6 +143,28 @@ export default function Lists() {
     if (e.key === 'Escape') cancelRename();
   }
 
+  async function moveList(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= lists.length) return;
+
+    const reordered = [...lists];
+    const moved = reordered.splice(index, 1)[0];
+    if (!moved) return;
+    reordered.splice(targetIndex, 0, moved);
+    setLists(reordered);
+
+    setIsReordering(true);
+    try {
+      const updated = await reorderLists(reordered.map((l) => l.id));
+      setLists(updated);
+    } catch {
+      const refreshed = await fetchLists();
+      setLists(refreshed);
+    } finally {
+      setIsReordering(false);
+    }
+  }
+
   function confirmDelete(listId: string) {
     setConfirmingDeleteId(listId);
     setDeleteError('');
@@ -196,7 +219,7 @@ export default function Lists() {
         {loadState === 'ready' && (
           <>
             <ul className="divide-y divide-gray-200 bg-white mt-2 rounded-lg mx-4 shadow-sm border border-gray-200">
-              {lists.map((list) => (
+              {lists.map((list, index) => (
                 <li key={list.id}>
                   {renamingId === list.id ? (
                     <div className="px-4 py-3">
@@ -244,8 +267,30 @@ export default function Lists() {
                     </div>
                   ) : (
                     <div className="flex items-center">
+                      <div className="flex flex-col px-1">
+                        <button
+                          onClick={() => moveList(index, -1)}
+                          disabled={index === 0 || isReordering}
+                          aria-label={`Move ${list.name} up`}
+                          className="p-1 text-gray-400 hover:text-gray-600 active:text-gray-800 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => moveList(index, 1)}
+                          disabled={index === lists.length - 1 || isReordering}
+                          aria-label={`Move ${list.name} down`}
+                          className="p-1 text-gray-400 hover:text-gray-600 active:text-gray-800 disabled:text-gray-200 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                          </svg>
+                        </button>
+                      </div>
                       <button
-                        className="flex-1 flex items-center justify-between px-4 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                        className="flex-1 flex items-center justify-between px-2 py-3 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 transition-colors"
                         onClick={() => startRename(list)}
                       >
                         <span className="text-gray-900 font-medium">

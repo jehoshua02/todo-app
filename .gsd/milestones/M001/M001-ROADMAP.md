@@ -16,7 +16,7 @@
 - [x] **S05: S05** `risk:medium` `depends:[]`
   > After this: User taps 'New List', enters a name, and sees it appear alongside Inbox. E2E test covers creation.
 
-- [ ] **S06: User can rename a list** `risk:low` `depends:[S05]`
+- [x] **S06: User can rename a list** `risk:low` `depends:[S05]`
   > After this: User renames a list. Inbox cannot be renamed. E2E test covers both cases.
 
 - [ ] **S07: User can delete a list (orphans move to Inbox)** `risk:medium` `depends:[S05]`
