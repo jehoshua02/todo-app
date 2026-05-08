@@ -88,8 +88,17 @@ export interface Task {
   listId: string;
   userId: string;
   title: string;
+  description: string | null;
+  dueDate: string | null;
   completed: boolean;
   createdAt: string;
+}
+
+export interface TaskUpdate {
+  title?: string;
+  description?: string | null;
+  dueDate?: string | null;
+  completed?: boolean;
 }
 
 export async function fetchTasks(listId: string): Promise<Task[]> {
@@ -123,12 +132,12 @@ export async function createTask(listId: string, title: string): Promise<Task> {
   return data.task;
 }
 
-export async function updateTask(listId: string, taskId: string, completed: boolean): Promise<Task> {
+export async function updateTask(listId: string, taskId: string, fields: TaskUpdate): Promise<Task> {
   const res = await fetch(`/api/tasks/lists/${listId}/tasks/${taskId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ completed }),
+    body: JSON.stringify(fields),
   });
 
   if (!res.ok) {

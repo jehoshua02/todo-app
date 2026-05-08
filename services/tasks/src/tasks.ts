@@ -65,6 +65,37 @@ async function createTask(req: Request, res: Response): Promise<void> {
   res.status(201).json({ task });
 }
 
+function validateDescription(description: unknown): { valid: true; description: string | null } | { valid: false; error: string } {
+  if (description === null || description === undefined) {
+    return { valid: true, description: null };
+  }
+  if (typeof description !== 'string') {
+    return { valid: false, error: 'Description must be a string' };
+  }
+  const trimmed = description.trim();
+  if (trimmed.length > 2000) {
+    return { valid: false, error: 'Description must be 2000 characters or less' };
+  }
+  return { valid: true, description: trimmed || null };
+}
+
+function validateDueDate(dueDate: unknown): { valid: true; dueDate: Date | null } | { valid: false; error: string } {
+  if (dueDate === null || dueDate === undefined) {
+    return { valid: true, dueDate: null };
+  }
+  if (typeof dueDate !== 'string') {
+    return { valid: false, error: 'dueDate must be a string in YYYY-MM-DD format' };
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    return { valid: false, error: 'dueDate must be in YYYY-MM-DD format' };
+  }
+  const parsed = new Date(dueDate + 'T00:00:00Z');
+  if (isNaN(parsed.getTime())) {
+    return { valid: false, error: 'dueDate is not a valid date' };
+  }
+  return { valid: true, dueDate: parsed };
+}
+
 async function updateTask(req: Request, res: Response): Promise<void> {
   const userId = req.userId!;
   const { listId, taskId } = req.params;
@@ -81,14 +112,43 @@ async function updateTask(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  if (typeof req.body.completed !== 'boolean') {
-    res.status(400).json({ error: 'completed must be a boolean' });
+  const data: Record<string, unknown> = {};
+  const { title, description, dueDate, completed } = req.body;
+
+  if (title !== undefined) {
+    const v = validateTitle(title);
+    if (!v.valid) { res.status(400).json({ error: v.error }); return; }
+    data.title = v.title;
+  }
+
+  if (description !== undefined) {
+    const v = validateDescription(description);
+    if (!v.valid) { res.status(400).json({ error: v.error }); return; }
+    data.description = v.description;
+  }
+
+  if (dueDate !== undefined) {
+    const v = validateDueDate(dueDate);
+    if (!v.valid) { res.status(400).json({ error: v.error }); return; }
+    data.dueDate = v.dueDate;
+  }
+
+  if (completed !== undefined) {
+    if (typeof completed !== 'boolean') {
+      res.status(400).json({ error: 'completed must be a boolean' });
+      return;
+    }
+    data.completed = completed;
+  }
+
+  if (Object.keys(data).length === 0) {
+    res.status(400).json({ error: 'No valid fields to update' });
     return;
   }
 
   const updated = await prisma.task.update({
     where: { id: taskId },
-    data: { completed: req.body.completed },
+    data,
   });
   res.json({ task: updated });
 }

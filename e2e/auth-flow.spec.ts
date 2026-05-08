@@ -423,6 +423,71 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Task to keep")).toBeVisible();
   });
 
+  test("user can edit a task", async ({ page }, testInfo) => {
+    const editUser = `e2e-edit-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(editUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Navigate into Inbox
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Create a task
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Original title");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Original title")).toBeVisible({ timeout: 5_000 });
+
+    // Screenshot: before editing
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-before-edit.png`,
+    });
+
+    // Click the task title to open edit form
+    await page.getByLabel("Edit Original title").click();
+
+    // Edit form should be visible
+    await expect(page.getByLabel("Edit task title")).toBeVisible();
+    await expect(page.getByLabel("Edit task description")).toBeVisible();
+    await expect(page.getByLabel("Edit task due date")).toBeVisible();
+
+    // Update all fields
+    await page.getByLabel("Edit task title").clear();
+    await page.getByLabel("Edit task title").fill("Updated title");
+    await page.getByLabel("Edit task description").fill("A detailed description");
+    await page.getByLabel("Edit task due date").fill("2026-12-31");
+
+    // Save
+    await page.getByRole("button", { name: "Save" }).click();
+
+    // Updated title should appear
+    await expect(page.getByText("Updated title")).toBeVisible({ timeout: 5_000 });
+    // Original title should be gone
+    await expect(page.getByText("Original title")).not.toBeVisible();
+    // Due date should be displayed
+    await expect(page.getByText("Due 2026-12-31")).toBeVisible();
+
+    // Screenshot: after editing
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-after-edit.png`,
+    });
+
+    // Refresh — changes should persist
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Updated title")).toBeVisible();
+    await expect(page.getByText("Due 2026-12-31")).toBeVisible();
+  });
+
   test("user can create a new list", async ({ page }, testInfo) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;

@@ -21,13 +21,15 @@ model List {
 }
 
 model Task {
-  id        String   @id @default(uuid())
-  listId    String   @map("list_id")
-  userId    String   @map("user_id")
-  title     String
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-  list      List     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  listId      String    @map("list_id")
+  userId      String    @map("user_id")
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date") @db.Date
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  list        List      @relation(fields: [listId], references: [id], onDelete: Cascade)
 
   @@index([listId])
   @@index([userId])

@@ -309,7 +309,7 @@ describe('PATCH /api/tasks/lists/:listId/tasks/:taskId', () => {
     expect(res.body.error).toBe('completed must be a boolean');
   });
 
-  it('returns 400 when completed is missing', async () => {
+  it('returns 400 when no valid fields provided', async () => {
     mockPrisma.list.findUnique.mockResolvedValue(LIST);
     mockPrisma.task.findUnique.mockResolvedValue(TASK);
 
@@ -319,7 +319,7 @@ describe('PATCH /api/tasks/lists/:listId/tasks/:taskId', () => {
       .send({});
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('completed must be a boolean');
+    expect(res.body.error).toBe('No valid fields to update');
   });
 
   it('marks a task as completed', async () => {
@@ -355,6 +355,219 @@ describe('PATCH /api/tasks/lists/:listId/tasks/:taskId', () => {
     expect(mockPrisma.task.update).toHaveBeenCalledWith({
       where: { id: 'task-1' },
       data: { completed: false },
+    });
+  });
+
+  it('updates the title', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, title: 'Updated title' });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Updated title' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.title).toBe('Updated title');
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { title: 'Updated title' },
+    });
+  });
+
+  it('trims whitespace from updated title', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, title: 'Trimmed' });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: '  Trimmed  ' });
+
+    expect(res.status).toBe(200);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { title: 'Trimmed' },
+    });
+  });
+
+  it('returns 400 for empty title', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Title is required');
+  });
+
+  it('returns 400 for title exceeding 500 characters', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'a'.repeat(501) });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Title must be 500 characters or less');
+  });
+
+  it('updates the description', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, description: 'Some details' });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ description: 'Some details' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.description).toBe('Some details');
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { description: 'Some details' },
+    });
+  });
+
+  it('clears description with null', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, description: 'Old' });
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, description: null });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ description: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.description).toBeNull();
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { description: null },
+    });
+  });
+
+  it('returns 400 for non-string description', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ description: 123 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Description must be a string');
+  });
+
+  it('returns 400 for description exceeding 2000 characters', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ description: 'a'.repeat(2001) });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Description must be 2000 characters or less');
+  });
+
+  it('updates the due date', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    const date = new Date('2026-06-15T00:00:00Z');
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, dueDate: date });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ dueDate: '2026-06-15' });
+
+    expect(res.status).toBe(200);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { dueDate: new Date('2026-06-15T00:00:00Z') },
+    });
+  });
+
+  it('clears due date with null', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, dueDate: new Date() });
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, dueDate: null });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ dueDate: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.dueDate).toBeNull();
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { dueDate: null },
+    });
+  });
+
+  it('returns 400 for invalid due date format', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ dueDate: '06/15/2026' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('dueDate must be in YYYY-MM-DD format');
+  });
+
+  it('returns 400 for non-string due date', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ dueDate: 20260615 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('dueDate must be a string in YYYY-MM-DD format');
+  });
+
+  it('updates multiple fields at once', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({
+      ...TASK,
+      title: 'New title',
+      description: 'New desc',
+      dueDate: new Date('2026-06-15T00:00:00Z'),
+      completed: true,
+    });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'New title', description: 'New desc', dueDate: '2026-06-15', completed: true });
+
+    expect(res.status).toBe(200);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: {
+        title: 'New title',
+        description: 'New desc',
+        dueDate: new Date('2026-06-15T00:00:00Z'),
+        completed: true,
+      },
     });
   });
 });
