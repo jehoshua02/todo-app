@@ -1,7 +1,7 @@
 # Codebase Map
 
-Generated: 2026-05-07T20:02:51Z | Files: 76 | Described: 0/76
-<!-- gsd:codebase-meta {"generatedAt":"2026-05-07T20:02:51Z","fingerprint":"cf10a6a074f8e7eb59a9c83708d4c6a84fad47e3","fileCount":76,"truncated":false} -->
+Generated: 2026-05-07T23:54:08Z | Files: 80 | Described: 0/80
+<!-- gsd:codebase-meta {"generatedAt":"2026-05-07T23:54:08Z","fingerprint":"63a47c9394574614c5379571423a4460aaed14bc","fileCount":80,"truncated":false} -->
 
 ### (root)/
 - `.env.example`
@@ -82,6 +82,7 @@ Generated: 2026-05-07T20:02:51Z | Files: 76 | Described: 0/76
 
 ### services/frontend/src/pages/
 - `services/frontend/src/pages/Home.tsx`
+- `services/frontend/src/pages/ListDetail.tsx`
 - `services/frontend/src/pages/Lists.tsx`
 - `services/frontend/src/pages/Login.tsx`
 - `services/frontend/src/pages/Register.tsx`
@@ -103,6 +104,9 @@ Generated: 2026-05-07T20:02:51Z | Files: 76 | Described: 0/76
 ### services/tasks/prisma/migrations/20260507_init/
 - `services/tasks/prisma/migrations/20260507_init/migration.sql`
 
+### services/tasks/prisma/migrations/20260508_add_tasks/
+- `services/tasks/prisma/migrations/20260508_add_tasks/migration.sql`
+
 ### services/tasks/src/
 - `services/tasks/src/app.ts`
 - `services/tasks/src/auth.test.ts`
@@ -112,3 +116,5 @@ Generated: 2026-05-07T20:02:51Z | Files: 76 | Described: 0/76
 - `services/tasks/src/index.ts`
 - `services/tasks/src/lists.test.ts`
 - `services/tasks/src/lists.ts`
+- `services/tasks/src/tasks.test.ts`
+- `services/tasks/src/tasks.ts`

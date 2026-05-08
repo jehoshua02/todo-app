@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { fetchTasks, createTask, type Task } from '../api/tasks';
+import { fetchTasks, createTask, updateTask, type Task } from '../api/tasks';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -78,6 +78,18 @@ export default function ListDetail() {
     }
   }
 
+  async function handleToggleComplete(task: Task) {
+    if (!listId) return;
+    try {
+      const updated = await updateTask(listId, task.id, !task.completed);
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch {
+      // Silently fail — task stays in current state
+    }
+  }
+
+  const activeTasks = tasks.filter((t) => !t.completed);
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') handleSaveTask();
     if (e.key === 'Escape') handleCancelCreate();
@@ -113,16 +125,23 @@ export default function ListDetail() {
 
         {loadState === 'ready' && (
           <>
-            {tasks.length === 0 && !isCreating && (
+            {activeTasks.length === 0 && !isCreating && (
               <div className="px-4 py-8 text-center">
                 <p className="text-gray-500 text-sm">No tasks yet</p>
               </div>
             )}
 
-            {tasks.length > 0 && (
+            {activeTasks.length > 0 && (
               <ul className="divide-y divide-gray-200 bg-white mt-2 rounded-lg mx-4 shadow-sm border border-gray-200">
-                {tasks.map((task) => (
+                {activeTasks.map((task) => (
                   <li key={task.id} className="px-4 py-3 flex items-center gap-3 min-h-[44px]">
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      onChange={() => handleToggleComplete(task)}
+                      aria-label={`Complete ${task.title}`}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                    />
                     <span className="text-gray-900">{task.title}</span>
                   </li>
                 ))}
