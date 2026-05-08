@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { fetchTasks, createTask, updateTask, type Task } from '../api/tasks';
+import { fetchTasks, createTask, updateTask, type Task, type TaskUpdate } from '../api/tasks';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -16,7 +16,14 @@ export default function ListDetail() {
   const [newTitle, setNewTitle] = useState('');
   const [createError, setCreateError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
+  const [editError, setEditError] = useState('');
+  const [isEditSaving, setIsEditSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editTitleRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user || !listId) return;
@@ -36,6 +43,10 @@ export default function ListDetail() {
     if (isCreating) inputRef.current?.focus();
   }, [isCreating]);
 
+  useEffect(() => {
+    if (editingTaskId) editTitleRef.current?.focus();
+  }, [editingTaskId]);
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -52,6 +63,7 @@ export default function ListDetail() {
     setIsCreating(true);
     setNewTitle('');
     setCreateError('');
+    setEditingTaskId(null);
   }
 
   function handleCancelCreate() {
@@ -81,16 +93,76 @@ export default function ListDetail() {
   async function handleToggleComplete(task: Task) {
     if (!listId) return;
     try {
-      const updated = await updateTask(listId, task.id, !task.completed);
+      const updated = await updateTask(listId, task.id, { completed: !task.completed });
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch {
       // Silently fail — task stays in current state
     }
   }
 
+  function handleEditClick(task: Task) {
+    setEditingTaskId(task.id);
+    setEditTitle(task.title);
+    setEditDescription(task.description ?? '');
+    setEditDueDate(task.dueDate ? task.dueDate.slice(0, 10) : '');
+    setEditError('');
+    setIsCreating(false);
+  }
+
+  function handleCancelEdit() {
+    setEditingTaskId(null);
+    setEditTitle('');
+    setEditDescription('');
+    setEditDueDate('');
+    setEditError('');
+  }
+
+  async function handleSaveEdit() {
+    if (!listId || !editingTaskId) return;
+
+    const task = tasks.find((t) => t.id === editingTaskId);
+    if (!task) return;
+
+    const fields: TaskUpdate = {};
+    const trimmedTitle = editTitle.trim();
+    if (!trimmedTitle) {
+      setEditError('Title is required');
+      return;
+    }
+    if (trimmedTitle !== task.title) fields.title = trimmedTitle;
+
+    const trimmedDesc = editDescription.trim();
+    const currentDesc = task.description ?? '';
+    if (trimmedDesc !== currentDesc) {
+      fields.description = trimmedDesc || null;
+    }
+
+    const currentDue = task.dueDate ? task.dueDate.slice(0, 10) : '';
+    if (editDueDate !== currentDue) {
+      fields.dueDate = editDueDate || null;
+    }
+
+    if (Object.keys(fields).length === 0) {
+      handleCancelEdit();
+      return;
+    }
+
+    setIsEditSaving(true);
+    setEditError('');
+    try {
+      const updated = await updateTask(listId, editingTaskId, fields);
+      setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setEditingTaskId(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to update task');
+    } finally {
+      setIsEditSaving(false);
+    }
+  }
+
   const activeTasks = tasks.filter((t) => !t.completed);
 
-  function handleKeyDown(e: React.KeyboardEvent) {
+  function handleCreateKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') handleSaveTask();
     if (e.key === 'Escape') handleCancelCreate();
   }
@@ -134,15 +206,81 @@ export default function ListDetail() {
             {activeTasks.length > 0 && (
               <ul className="divide-y divide-gray-200 bg-white mt-2 rounded-lg mx-4 shadow-sm border border-gray-200">
                 {activeTasks.map((task) => (
-                  <li key={task.id} className="px-4 py-3 flex items-center gap-3 min-h-[44px]">
-                    <input
-                      type="checkbox"
-                      checked={false}
-                      onChange={() => handleToggleComplete(task)}
-                      aria-label={`Complete ${task.title}`}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
-                    />
-                    <span className="text-gray-900">{task.title}</span>
+                  <li key={task.id}>
+                    {editingTaskId === task.id ? (
+                      <div className="px-4 py-3 space-y-2">
+                        <input
+                          ref={editTitleRef}
+                          type="text"
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          placeholder="Task title"
+                          maxLength={500}
+                          disabled={isEditSaving}
+                          aria-label="Edit task title"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                        />
+                        <textarea
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          placeholder="Description (optional)"
+                          maxLength={2000}
+                          rows={3}
+                          disabled={isEditSaving}
+                          aria-label="Edit task description"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 resize-none"
+                        />
+                        <input
+                          type="date"
+                          value={editDueDate}
+                          onChange={(e) => setEditDueDate(e.target.value)}
+                          disabled={isEditSaving}
+                          aria-label="Edit task due date"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={isEditSaving || !editTitle.trim()}
+                            className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isEditSaving ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={isEditSaving}
+                            className="px-3 py-2 text-gray-500 text-sm hover:text-gray-700 active:text-gray-900 disabled:opacity-50 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {editError && (
+                          <p className="text-red-600 text-xs" role="alert">{editError}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="px-4 py-3 flex items-center gap-3 min-h-[44px]">
+                        <input
+                          type="checkbox"
+                          checked={false}
+                          onChange={() => handleToggleComplete(task)}
+                          aria-label={`Complete ${task.title}`}
+                          className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                        />
+                        <button
+                          onClick={() => handleEditClick(task)}
+                          className="flex-1 text-left min-w-0"
+                          aria-label={`Edit ${task.title}`}
+                        >
+                          <span className="text-gray-900 block truncate">{task.title}</span>
+                          {task.dueDate && (
+                            <span className="text-gray-500 text-xs block mt-0.5">
+                              Due {task.dueDate.slice(0, 10)}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -156,7 +294,7 @@ export default function ListDetail() {
                     type="text"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={handleCreateKeyDown}
                     placeholder="Task title"
                     maxLength={500}
                     disabled={isSaving}
