@@ -153,6 +153,27 @@ async function updateTask(req: Request, res: Response): Promise<void> {
   res.json({ task: updated });
 }
 
+async function deleteTask(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const { listId, taskId } = req.params;
+
+  const list = await findUserList(listId, userId);
+  if (!list) {
+    res.status(404).json({ error: 'List not found' });
+    return;
+  }
+
+  const task = await findUserTask(taskId, listId, userId);
+  if (!task) {
+    res.status(404).json({ error: 'Task not found' });
+    return;
+  }
+
+  await prisma.task.delete({ where: { id: taskId } });
+  res.status(204).end();
+}
+
 tasksRouter.get('/', getTasks);
 tasksRouter.post('/', createTask);
 tasksRouter.patch('/:taskId', updateTask);
+tasksRouter.delete('/:taskId', deleteTask);
