@@ -101,6 +101,20 @@ export interface TaskUpdate {
   completed?: boolean;
 }
 
+export async function fetchTask(listId: string, taskId: string): Promise<Task> {
+  const res = await fetch(`/api/tasks/lists/${listId}/tasks/${taskId}`, {
+    credentials: 'same-origin',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to fetch task');
+  }
+
+  const data = await res.json();
+  return data.task;
+}
+
 export async function fetchTasks(listId: string): Promise<Task[]> {
   const res = await fetch(`/api/tasks/lists/${listId}/tasks`, {
     credentials: 'same-origin',

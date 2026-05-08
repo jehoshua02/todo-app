@@ -106,6 +106,97 @@ describe('GET /api/tasks/lists/:listId/tasks', () => {
   });
 });
 
+describe('GET /api/tasks/lists/:listId/tasks/:taskId', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app).get('/api/tasks/lists/list-1/tasks/task-1');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when list does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/nonexistent/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when list belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({ ...LIST, userId: 'other-user' });
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when task does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/nonexistent')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 404 when task belongs to a different list', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({
+      id: 'task-1', listId: 'other-list', userId: 'user-1', title: 'Buy milk',
+      completed: false, createdAt: new Date('2026-01-01'),
+    });
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 404 when task belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({
+      id: 'task-1', listId: 'list-1', userId: 'other-user', title: 'Buy milk',
+      completed: false, createdAt: new Date('2026-01-01'),
+    });
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns the task', async () => {
+    const task = {
+      id: 'task-1', listId: 'list-1', userId: 'user-1', title: 'Buy milk',
+      description: 'Whole milk', dueDate: new Date('2026-06-15T00:00:00Z'),
+      completed: false, createdAt: new Date('2026-01-01'),
+    };
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(task);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.id).toBe('task-1');
+    expect(res.body.task.title).toBe('Buy milk');
+    expect(res.body.task.description).toBe('Whole milk');
+    expect(res.body.task.completed).toBe(false);
+  });
+});
+
 describe('POST /api/tasks/lists/:listId/tasks', () => {
   it('returns 401 without auth', async () => {
     const res = await request(app)

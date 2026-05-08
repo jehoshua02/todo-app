@@ -423,7 +423,51 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Task to keep")).toBeVisible();
   });
 
-  test("user can edit a task", async ({ page }, testInfo) => {
+  test("user can view task detail", async ({ page }, testInfo) => {
+    const detailUser = `e2e-detail-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(detailUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Navigate into Inbox
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Create a task
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Detail test task");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Detail test task")).toBeVisible({ timeout: 5_000 });
+
+    // Click the task to view detail
+    await page.getByLabel("View Detail test task").click();
+
+    // Should navigate to task detail page
+    await expect(page.getByRole("heading", { name: "Task Detail" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("task-title")).toHaveText("Detail test task");
+
+    // Screenshot: task detail
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/task-detail.png`,
+    });
+
+    // Navigate back to tasks
+    await page.getByLabel("Back to tasks").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Detail test task")).toBeVisible();
+  });
+
+  test("user can edit a task from detail page", async ({ page }, testInfo) => {
     const editUser = `e2e-edit-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(editUser);
@@ -445,13 +489,19 @@ test.describe("Auth + Lists flow", () => {
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Original title")).toBeVisible({ timeout: 5_000 });
 
+    // Navigate to task detail
+    await page.getByLabel("View Original title").click();
+    await expect(page.getByRole("heading", { name: "Task Detail" })).toBeVisible({
+      timeout: 10_000,
+    });
+
     // Screenshot: before editing
     await page.screenshot({
       path: `e2e/screenshots/${testInfo.project.name}/tasks-before-edit.png`,
     });
 
-    // Click the task title to open edit form
-    await page.getByLabel("Edit Original title").click();
+    // Click Edit button
+    await page.getByLabel("Edit task").click();
 
     // Edit form should be visible
     await expect(page.getByLabel("Edit task title")).toBeVisible();
@@ -467,17 +517,23 @@ test.describe("Auth + Lists flow", () => {
     // Save
     await page.getByRole("button", { name: "Save" }).click();
 
-    // Updated title should appear
-    await expect(page.getByText("Updated title")).toBeVisible({ timeout: 5_000 });
-    // Original title should be gone
-    await expect(page.getByText("Original title")).not.toBeVisible();
-    // Due date should be displayed
-    await expect(page.getByText("Due 2026-12-31")).toBeVisible();
+    // Updated title should appear on detail page
+    await expect(page.getByTestId("task-title")).toHaveText("Updated title", { timeout: 5_000 });
+    await expect(page.getByTestId("task-description")).toHaveText("A detailed description");
+    await expect(page.getByTestId("task-due-date")).toContainText("2026-12-31");
 
     // Screenshot: after editing
     await page.screenshot({
       path: `e2e/screenshots/${testInfo.project.name}/tasks-after-edit.png`,
     });
+
+    // Navigate back — updated title should show in list
+    await page.getByLabel("Back to tasks").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Updated title")).toBeVisible();
+    await expect(page.getByText("Due 2026-12-31")).toBeVisible();
 
     // Refresh — changes should persist
     await page.reload();
@@ -488,7 +544,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Due 2026-12-31")).toBeVisible();
   });
 
-  test("user can delete a task", async ({ page }, testInfo) => {
+  test("user can delete a task from detail page", async ({ page }, testInfo) => {
     const deleteTaskUser = `e2e-deltask-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(deleteTaskUser);
@@ -520,8 +576,11 @@ test.describe("Auth + Lists flow", () => {
       path: `e2e/screenshots/${testInfo.project.name}/tasks-before-delete.png`,
     });
 
-    // Click the task to open edit form
-    await page.getByLabel("Edit Task to delete").click();
+    // Navigate to task detail
+    await page.getByLabel("View Task to delete").click();
+    await expect(page.getByRole("heading", { name: "Task Detail" })).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Click the delete button (trash icon)
     await page.getByLabel("Delete Task to delete").click();
@@ -529,8 +588,13 @@ test.describe("Auth + Lists flow", () => {
     // Confirmation should appear
     await expect(page.getByText("Delete this task?")).toBeVisible();
 
-    // Confirm deletion
+    // Confirm deletion — should navigate back to task list
     await page.getByLabel("Confirm delete").click();
+
+    // Should be back on the task list
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Task should be removed
     await expect(page.getByText("Task to delete")).not.toBeVisible({ timeout: 5_000 });
