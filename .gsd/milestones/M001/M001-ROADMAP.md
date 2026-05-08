@@ -16,50 +16,53 @@
 - [x] **S05: Create a list** `risk:medium` `depends:[]`
   > After this: User taps New List, enters a name, sees it appear.
 
-- [x] **S06: Rename a list** `risk:low` `depends:[S05]`
+- [x] **S06: S06** `risk:low` `depends:[]`
   > After this: User renames a list. Inbox cannot be renamed.
 
-- [x] **S07: Delete a list** `risk:medium` `depends:[S05]`
+- [x] **S07: S07** `risk:medium` `depends:[]`
   > After this: User deletes a list. Tasks reappear in Inbox.
 
-- [x] **S08: Reorder lists** `risk:low` `depends:[S05]`
+- [x] **S08: S08** `risk:low` `depends:[]`
   > After this: User reorders lists. Order persists.
 
-- [x] **S09: Create a task** `risk:medium` `depends:[S04]`
+- [x] **S09: S09** `risk:medium` `depends:[]`
   > After this: User creates a task with title in a list.
 
-- [x] **S10: Complete a task** `risk:low` `depends:[S09]`
+- [x] **S10: S10** `risk:low` `depends:[]`
   > After this: User marks a task complete. Visual state changes.
 
-- [x] **S11: Edit a task** `risk:low` `depends:[S09]`
+- [x] **S11: S11** `risk:low` `depends:[]`
   > After this: User edits title/description/due date. Changes persist.
 
-- [x] **S12: Delete a task** `risk:low` `depends:[S09]`
+- [x] **S12: S12** `risk:low` `depends:[]`
   > After this: User deletes a task permanently.
 
-- [x] **S13: Task detail screen** `risk:low` `depends:[S09]`
+- [x] **S13: S13** `risk:low` `depends:[]`
   > After this: User taps a task to see full detail view. Edit and delete available from detail.
 
-- [x] **S14: E2E Docker image with browser** `risk:low` `depends:[S13]`
+- [x] **S14: S14** `risk:low` `depends:[]`
   > After this: E2E service builds from a Dockerfile with Chromium baked in.
 
 - [x] **S15: S15** `risk:low` `depends:[]`
   > After this: Screenshots at screenshots/{theme}-{screen}-{viewport}.png.
 
-- [ ] **S16: Screenshots markdown** `risk:low` `depends:[S15]`
+- [x] **S16: S16** `risk:low` `depends:[]`
   > After this: SCREENSHOTS.md displays all screenshots grouped by screen.
 
-- [ ] **S17: Theme picker** `risk:medium` `depends:[S15]`
+- [ ] **S17: Theme picker** `risk:medium` `depends:[S15,S20]`
   > After this: Current look is default theme. Second theme available. User picks via switcher.
 
-- [ ] **S18: Discuss frontend code organization** `risk:low` `depends:[S13]`
+- [ ] **S18: Discuss frontend code organization** `risk:low` `depends:[S21]`
   > After this: Frontend folder structure agreed upon and reorganized.
 
-- [ ] **S19: Discuss backend service code organization** `risk:low` `depends:[S13]`
+- [ ] **S19: Discuss backend service code organization** `risk:low` `depends:[S21]`
   > After this: Backend service structure agreed upon and reorganized.
 
-- [ ] **S20: UX love audit** `risk:low` `depends:[S15]`
+- [ ] **S20: UX love audit** `risk:low` `depends:[S21]`
   > After this: After this: improvement list produced from screenshot review, new slices planned into roadmap.
+
+- [x] **S21: S21** `risk:medium` `depends:[]`
+  > After this: App served over HTTPS via Tailscale Funnel. Passkey auth works on Android Chrome. Clone repo, drop .env, compose up — that's a deployment. WSL stays up after Windows reboot.
 
 ## Boundary Map
 
