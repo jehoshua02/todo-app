@@ -1,7 +1,6 @@
 # ── GSD: Runtime / Ephemeral (per-developer, per-session) ──────
 .gsd/completed-units.json
 .gsd/STATE.md
-.gsd/gsd.db*
 .gsd/metrics.json
 .gsd/activity/
 .gsd/runtime/
