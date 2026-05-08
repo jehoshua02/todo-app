@@ -43,10 +43,10 @@
 - [x] **S14: E2E Docker image with browser** `risk:low` `depends:[S13]`
   > After this: E2E service builds from a Dockerfile with Chromium baked in.
 
-- [ ] **S15: Flatten screenshot paths** `risk:low` `depends:[S14]`
+- [x] **S15: Flatten screenshot paths** `risk:low` `depends:[S14]`
   > After this: Screenshots at screenshots/{theme}-{screen}-{viewport}.png.
 
-- [ ] **S16: Screenshots markdown** `risk:low` `depends:[S15]`
+- [x] **S16: Screenshots markdown** `risk:low` `depends:[S15]`
   > After this: SCREENSHOTS.md displays all screenshots grouped by screen.
 
 - [ ] **S17: Theme picker** `risk:medium` `depends:[S15]`
@@ -57,6 +57,9 @@
 
 - [ ] **S19: Discuss backend service code organization** `risk:low` `depends:[S13]`
   > After this: Backend service structure agreed upon and reorganized.
+
+- [ ] **S20: UX love — discuss improvements** `risk:low` `depends:[S15]`
+  > After this: 27-item UX improvement list reviewed, decisions made on which items become future slices.
 
 ## Boundary Map
 

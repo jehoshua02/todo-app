@@ -1,7 +1,7 @@
 # Codebase Map
 
-Generated: 2026-05-08T02:19:33Z | Files: 82 | Described: 0/82
-<!-- gsd:codebase-meta {"generatedAt":"2026-05-08T02:19:33Z","fingerprint":"95e592809415f4c1dd7a74d9da9349cc9ca02f25","fileCount":82,"truncated":false} -->
+Generated: 2026-05-08T02:52:11Z | Files: 85 | Described: 0/85
+<!-- gsd:codebase-meta {"generatedAt":"2026-05-08T02:52:11Z","fingerprint":"39c081ce826cf33a55580ec53bd8d4df557f21a1","fileCount":85,"truncated":false} -->
 
 ### (root)/
 - `.env.example`
@@ -15,7 +15,11 @@ Generated: 2026-05-08T02:19:33Z | Files: 82 | Described: 0/82
 ### e2e/
 - `e2e/auth-flow.spec.ts`
 - `e2e/Dockerfile`
+- `e2e/SCREENSHOTS.md`
 - `e2e/virtual-authenticator.ts`
+
+### e2e/screenshots/
+- `e2e/screenshots/.gitkeep`
 
 ### services/auth/
 - `services/auth/.gitignore`
@@ -87,6 +91,7 @@ Generated: 2026-05-08T02:19:33Z | Files: 82 | Described: 0/82
 - `services/frontend/src/pages/Lists.tsx`
 - `services/frontend/src/pages/Login.tsx`
 - `services/frontend/src/pages/Register.tsx`
+- `services/frontend/src/pages/TaskDetail.tsx`
 
 ### services/tasks/
 - `services/tasks/.gitignore`
