@@ -1,7 +1,7 @@
 # Codebase Map
 
-Generated: 2026-05-08T01:38:41Z | Files: 81 | Described: 0/81
-<!-- gsd:codebase-meta {"generatedAt":"2026-05-08T01:38:41Z","fingerprint":"0e7334e273321971bdd73b3586b53996a5a93c7f","fileCount":81,"truncated":false} -->
+Generated: 2026-05-08T02:19:33Z | Files: 82 | Described: 0/82
+<!-- gsd:codebase-meta {"generatedAt":"2026-05-08T02:19:33Z","fingerprint":"95e592809415f4c1dd7a74d9da9349cc9ca02f25","fileCount":82,"truncated":false} -->
 
 ### (root)/
 - `.env.example`
@@ -14,6 +14,7 @@ Generated: 2026-05-08T01:38:41Z | Files: 81 | Described: 0/81
 
 ### e2e/
 - `e2e/auth-flow.spec.ts`
+- `e2e/Dockerfile`
 - `e2e/virtual-authenticator.ts`
 
 ### services/auth/

@@ -99,6 +99,8 @@ services:
     command: npx playwright test
     environment:
       - BASE_URL=http://localhost:8080
+    volumes:
+      - ./e2e/screenshots:/app/e2e/screenshots
     network_mode: host
     depends_on:
       frontend:

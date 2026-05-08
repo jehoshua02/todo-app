@@ -1,41 +1,63 @@
-# M001: M001
+# M001: Todo App MVP
 
-**Vision:** 
+**Vision:** Multi-tenant task management app with passkey auth, mobile-first UI, and full E2E coverage.
 
 ## Slices
 
-- [x] **S02: S02** `risk:medium` `depends:[]`
-  > After this: 
+- [x] **S02: Passkey registration** `risk:medium` `depends:[]`
+  > After this: User can register with a passkey.
 
-- [x] **S03: S03** `risk:medium` `depends:[]`
-  > After this: 
+- [x] **S03: Auth context and logout** `risk:medium` `depends:[]`
+  > After this: Frontend tracks auth state, user can log out.
 
-- [x] **S04: S04** `risk:high` `depends:[]`
-  > After this: After registering and logging in, user sees a Lists screen with their auto-created Inbox. JWT middleware protects all task service endpoints. Polished mobile UI. E2E test proves it.
+- [x] **S04: Lists screen with Inbox** `risk:high` `depends:[]`
+  > After this: User sees a Lists screen with their auto-created Inbox.
 
-- [x] **S05: S05** `risk:medium` `depends:[]`
-  > After this: User taps 'New List', enters a name, and sees it appear alongside Inbox. E2E test covers creation.
+- [x] **S05: Create a list** `risk:medium` `depends:[]`
+  > After this: User taps New List, enters a name, sees it appear.
 
-- [x] **S06: User can rename a list** `risk:low` `depends:[S05]`
-  > After this: User renames a list. Inbox cannot be renamed. E2E test covers both cases.
+- [x] **S06: Rename a list** `risk:low` `depends:[S05]`
+  > After this: User renames a list. Inbox cannot be renamed.
 
-- [ ] **S07: User can delete a list (orphans move to Inbox)** `risk:medium` `depends:[S05]`
-  > After this: User deletes a list containing tasks. Tasks reappear in Inbox. Inbox cannot be deleted. E2E test proves orphan handling.
+- [x] **S07: Delete a list** `risk:medium` `depends:[S05]`
+  > After this: User deletes a list. Tasks reappear in Inbox.
 
-- [ ] **S08: User can reorder lists** `risk:low` `depends:[S05]`
-  > After this: User reorders lists. New order persists across refresh. E2E test covers it.
+- [x] **S08: Reorder lists** `risk:low` `depends:[S05]`
+  > After this: User reorders lists. Order persists.
 
-- [ ] **S09: User can create a task in a list** `risk:medium` `depends:[S04]`
-  > After this: User taps into a list, creates a task with title. Task appears in the list view sorted by creation order. E2E test proves it.
+- [x] **S09: Create a task** `risk:medium` `depends:[S04]`
+  > After this: User creates a task with title in a list.
 
-- [ ] **S10: User can complete a task** `risk:low` `depends:[S09]`
-  > After this: User marks a task complete. Task disappears from the default list view. E2E test proves visibility change.
+- [x] **S10: Complete a task** `risk:low` `depends:[S09]`
+  > After this: User marks a task complete. Visual state changes.
 
-- [ ] **S11: User can edit a task** `risk:low` `depends:[S09]`
-  > After this: User opens task detail, edits title/description/due date, saves. Changes persist. Tasks sort by due date. E2E test covers it.
+- [x] **S11: Edit a task** `risk:low` `depends:[S09]`
+  > After this: User edits title/description/due date. Changes persist.
 
-- [ ] **S12: User can delete a task** `risk:low` `depends:[S09]`
-  > After this: User deletes a task. Task is removed permanently. E2E test confirms deletion.
+- [x] **S12: Delete a task** `risk:low` `depends:[S09]`
+  > After this: User deletes a task permanently.
 
-- [ ] **S13: User can view task detail screen** `risk:low` `depends:[S09]`
-  > After this: User taps a task to see full detail view with title, description, due date, and completion status. Three-screen drill-down complete. E2E test with screenshot.
+- [x] **S13: Task detail screen** `risk:low` `depends:[S09]`
+  > After this: User taps a task to see full detail view. Edit and delete available from detail.
+
+- [x] **S14: E2E Docker image with browser** `risk:low` `depends:[S13]`
+  > After this: E2E service builds from a Dockerfile with Chromium baked in.
+
+- [ ] **S15: Flatten screenshot paths** `risk:low` `depends:[S14]`
+  > After this: Screenshots at screenshots/{theme}-{screen}-{viewport}.png.
+
+- [ ] **S16: Screenshots markdown** `risk:low` `depends:[S15]`
+  > After this: SCREENSHOTS.md displays all screenshots grouped by screen.
+
+- [ ] **S17: Theme picker** `risk:medium` `depends:[S15]`
+  > After this: Current look is default theme. Second theme available. User picks via switcher.
+
+- [ ] **S18: Discuss frontend code organization** `risk:low` `depends:[S13]`
+  > After this: Frontend folder structure agreed upon and reorganized.
+
+- [ ] **S19: Discuss backend service code organization** `risk:low` `depends:[S13]`
+  > After this: Backend service structure agreed upon and reorganized.
+
+## Boundary Map
+
+Not provided.
