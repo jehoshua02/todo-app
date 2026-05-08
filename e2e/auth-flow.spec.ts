@@ -369,6 +369,60 @@ test.describe("Auth + Lists flow", () => {
     });
   });
 
+  test("user can complete a task and it disappears", async ({ page }, testInfo) => {
+    const completeUser = `e2e-complete-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(completeUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Navigate into Inbox
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Create two tasks
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Task to complete");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Task to complete")).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Task to keep");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Task to keep")).toBeVisible({ timeout: 5_000 });
+
+    // Screenshot: before completing
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-before-complete.png`,
+    });
+
+    // Complete the first task
+    await page.getByLabel("Complete Task to complete").click();
+
+    // Task should disappear from view
+    await expect(page.getByText("Task to complete")).not.toBeVisible({ timeout: 5_000 });
+    // Other task should still be visible
+    await expect(page.getByText("Task to keep")).toBeVisible();
+
+    // Screenshot: after completing
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-after-complete.png`,
+    });
+
+    // Refresh — completed task should stay hidden
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Task to complete")).not.toBeVisible();
+    await expect(page.getByText("Task to keep")).toBeVisible();
+  });
+
   test("user can create a new list", async ({ page }, testInfo) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;

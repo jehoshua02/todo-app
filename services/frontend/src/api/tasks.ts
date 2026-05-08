@@ -122,3 +122,20 @@ export async function createTask(listId: string, title: string): Promise<Task> {
   const data = await res.json();
   return data.task;
 }
+
+export async function updateTask(listId: string, taskId: string, completed: boolean): Promise<Task> {
+  const res = await fetch(`/api/tasks/lists/${listId}/tasks/${taskId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ completed }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to update task');
+  }
+
+  const data = await res.json();
+  return data.task;
+}

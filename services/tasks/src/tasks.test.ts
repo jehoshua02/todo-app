@@ -10,6 +10,8 @@ vi.mock('./db', () => ({
     task: {
       findMany: vi.fn(),
       create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -211,5 +213,148 @@ describe('POST /api/tasks/lists/:listId/tasks', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('Title must be 500 characters or less');
+  });
+});
+
+const TASK = {
+  id: 'task-1',
+  listId: 'list-1',
+  userId: 'user-1',
+  title: 'Buy milk',
+  completed: false,
+  createdAt: new Date('2026-01-01'),
+};
+
+describe('PATCH /api/tasks/lists/:listId/tasks/:taskId', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .send({ completed: true });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when list does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: true });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when list belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({ ...LIST, userId: 'other-user' });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: true });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when task does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/nonexistent')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: true });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 404 when task belongs to a different list', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, listId: 'other-list' });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: true });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 404 when task belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, userId: 'other-user' });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: true });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 400 when completed is not a boolean', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: 'yes' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('completed must be a boolean');
+  });
+
+  it('returns 400 when completed is missing', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('completed must be a boolean');
+  });
+
+  it('marks a task as completed', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, completed: true });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.completed).toBe(true);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { completed: true },
+    });
+  });
+
+  it('marks a task as incomplete', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, completed: true });
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, completed: false });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ completed: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.completed).toBe(false);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { completed: false },
+    });
   });
 });

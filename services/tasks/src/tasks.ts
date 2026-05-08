@@ -37,6 +37,12 @@ async function getTasks(req: Request, res: Response): Promise<void> {
   res.json({ tasks });
 }
 
+async function findUserTask(taskId: string, listId: string, userId: string) {
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task || task.listId !== listId || task.userId !== userId) return null;
+  return task;
+}
+
 async function createTask(req: Request, res: Response): Promise<void> {
   const userId = req.userId!;
   const { listId } = req.params;
@@ -59,5 +65,34 @@ async function createTask(req: Request, res: Response): Promise<void> {
   res.status(201).json({ task });
 }
 
+async function updateTask(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const { listId, taskId } = req.params;
+
+  const list = await findUserList(listId, userId);
+  if (!list) {
+    res.status(404).json({ error: 'List not found' });
+    return;
+  }
+
+  const task = await findUserTask(taskId, listId, userId);
+  if (!task) {
+    res.status(404).json({ error: 'Task not found' });
+    return;
+  }
+
+  if (typeof req.body.completed !== 'boolean') {
+    res.status(400).json({ error: 'completed must be a boolean' });
+    return;
+  }
+
+  const updated = await prisma.task.update({
+    where: { id: taskId },
+    data: { completed: req.body.completed },
+  });
+  res.json({ task: updated });
+}
+
 tasksRouter.get('/', getTasks);
 tasksRouter.post('/', createTask);
+tasksRouter.patch('/:taskId', updateTask);
