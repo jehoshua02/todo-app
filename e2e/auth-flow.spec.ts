@@ -488,6 +488,69 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Due 2026-12-31")).toBeVisible();
   });
 
+  test("user can delete a task", async ({ page }, testInfo) => {
+    const deleteTaskUser = `e2e-deltask-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(deleteTaskUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Navigate into Inbox
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Create two tasks
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Task to delete");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Task to delete")).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Task to keep");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Task to keep")).toBeVisible({ timeout: 5_000 });
+
+    // Screenshot: before deleting
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-before-delete.png`,
+    });
+
+    // Click the task to open edit form
+    await page.getByLabel("Edit Task to delete").click();
+
+    // Click the delete button (trash icon)
+    await page.getByLabel("Delete Task to delete").click();
+
+    // Confirmation should appear
+    await expect(page.getByText("Delete this task?")).toBeVisible();
+
+    // Confirm deletion
+    await page.getByLabel("Confirm delete").click();
+
+    // Task should be removed
+    await expect(page.getByText("Task to delete")).not.toBeVisible({ timeout: 5_000 });
+    // Other task should still be visible
+    await expect(page.getByText("Task to keep")).toBeVisible();
+
+    // Screenshot: after deleting
+    await page.screenshot({
+      path: `e2e/screenshots/${testInfo.project.name}/tasks-after-delete.png`,
+    });
+
+    // Refresh — deleted task should stay gone
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText("Task to delete")).not.toBeVisible();
+    await expect(page.getByText("Task to keep")).toBeVisible();
+  });
+
   test("user can create a new list", async ({ page }, testInfo) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;

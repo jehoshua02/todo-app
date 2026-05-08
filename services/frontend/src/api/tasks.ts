@@ -148,3 +148,15 @@ export async function updateTask(listId: string, taskId: string, fields: TaskUpd
   const data = await res.json();
   return data.task;
 }
+
+export async function deleteTask(listId: string, taskId: string): Promise<void> {
+  const res = await fetch(`/api/tasks/lists/${listId}/tasks/${taskId}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to delete task');
+  }
+}

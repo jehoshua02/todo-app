@@ -1,7 +1,7 @@
 # Codebase Map
 
-Generated: 2026-05-07T23:54:08Z | Files: 80 | Described: 0/80
-<!-- gsd:codebase-meta {"generatedAt":"2026-05-07T23:54:08Z","fingerprint":"63a47c9394574614c5379571423a4460aaed14bc","fileCount":80,"truncated":false} -->
+Generated: 2026-05-08T01:38:41Z | Files: 81 | Described: 0/81
+<!-- gsd:codebase-meta {"generatedAt":"2026-05-08T01:38:41Z","fingerprint":"0e7334e273321971bdd73b3586b53996a5a93c7f","fileCount":81,"truncated":false} -->
 
 ### (root)/
 - `.env.example`
@@ -106,6 +106,9 @@ Generated: 2026-05-07T23:54:08Z | Files: 80 | Described: 0/80
 
 ### services/tasks/prisma/migrations/20260508_add_tasks/
 - `services/tasks/prisma/migrations/20260508_add_tasks/migration.sql`
+
+### services/tasks/prisma/migrations/20260509_add_task_details/
+- `services/tasks/prisma/migrations/20260509_add_task_details/migration.sql`
 
 ### services/tasks/src/
 - `services/tasks/src/app.ts`

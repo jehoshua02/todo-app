@@ -12,6 +12,7 @@ vi.mock('./db', () => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
   },
 }));
@@ -568,6 +569,88 @@ describe('PATCH /api/tasks/lists/:listId/tasks/:taskId', () => {
         dueDate: new Date('2026-06-15T00:00:00Z'),
         completed: true,
       },
+    });
+  });
+});
+
+describe('DELETE /api/tasks/lists/:listId/tasks/:taskId', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when list does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when list belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue({ ...LIST, userId: 'other-user' });
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 404 when task does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/nonexistent')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 404 when task belongs to a different list', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, listId: 'other-list' });
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('returns 404 when task belongs to another user', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, userId: 'other-user' });
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+
+  it('deletes a task and returns 204', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.delete.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+
+    expect(res.status).toBe(204);
+    expect(res.body).toEqual({});
+    expect(mockPrisma.task.delete).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
     });
   });
 });
