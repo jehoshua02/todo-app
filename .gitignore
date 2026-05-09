@@ -1,13 +1,5 @@
-# ── GSD: Runtime / Ephemeral (per-developer, per-session) ──────
-.gsd/completed-units.json
-.gsd/STATE.md
-.gsd/gsd.db*
-.gsd/metrics.json
-.gsd/activity/
-.gsd/runtime/
-.gsd/worktrees/
-.gsd/milestones/**/continue.md
-.gsd/milestones/**/*-CONTINUE.md.gsd
+# ── GSD ─────────────────────────────────────────────────────────
+.gsd/
 .gsd-id
 
 .mcp.json
@@ -36,13 +28,6 @@ vendor/
 *.log
 coverage/
 .cache/
-tmp/
-.gsd/audit/events.jsonl
-.gsd/event-log.jsonl
-.gsd/graphs/graph.json
-.gsd/journal/
-.gsd/last-snapshot.md
-.gsd/notifications.jsonl
-.gsd/state-manifest.json
-test-results/
+tmp/test-results/
 playwright-report/
+test-results/
