@@ -111,7 +111,7 @@ services:
     hostname: ${TS_HOSTNAME:-todo-app}
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_EXTRA_ARGS=--accept-dns=false
+      - TS_EXTRA_ARGS=--accept-dns=false --hostname=${TS_HOSTNAME:-todo-app}
       - TS_STATE_DIR=/var/lib/tailscale
       - TS_USERSPACE=false
       - TS_SERVE_CONFIG=/config/serve-config.json
