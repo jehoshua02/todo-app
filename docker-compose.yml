@@ -95,8 +95,8 @@ services:
       retries: 5
       start_period: 5s
 
-  webhook:
-    build: ./services/webhook
+  deploy:
+    build: ./services/deploy
     environment:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
       - DEPLOY_SCRIPT=/scripts/deploy.sh
@@ -128,7 +128,7 @@ services:
     depends_on:
       frontend:
         condition: service_healthy
-      webhook:
+      deploy:
         condition: service_started
 
   e2e:

@@ -1,7 +1,7 @@
 # Codebase Map
 
-Generated: 2026-05-09T21:27:37Z | Files: 90 | Described: 0/90
-<!-- gsd:codebase-meta {"generatedAt":"2026-05-09T21:27:37Z","fingerprint":"cee2acfe27ea183658fc9abcfa878169b33f463b","fileCount":90,"truncated":false} -->
+Generated: 2026-05-09T21:30:27Z | Files: 90 | Described: 0/90
+<!-- gsd:codebase-meta {"generatedAt":"2026-05-09T21:30:27Z","fingerprint":"a337a68666f8d8bb0e59e3d4f33da6620ed8dde5","fileCount":90,"truncated":false} -->
 
 ### (root)/
 - `.env.example`
@@ -60,6 +60,10 @@ Generated: 2026-05-09T21:27:37Z | Files: 90 | Described: 0/90
 - `services/auth/src/register.ts`
 - `services/auth/src/tokens.test.ts`
 - `services/auth/src/tokens.ts`
+
+### services/deploy/
+- `services/deploy/Dockerfile`
+- `services/deploy/server.mjs`
 
 ### services/frontend/
 - `services/frontend/.dockerignore`
@@ -131,10 +135,6 @@ Generated: 2026-05-09T21:27:37Z | Files: 90 | Described: 0/90
 - `services/tasks/src/lists.ts`
 - `services/tasks/src/tasks.test.ts`
 - `services/tasks/src/tasks.ts`
-
-### services/webhook/
-- `services/webhook/Dockerfile`
-- `services/webhook/server.mjs`
 
 ### tailscale/
 - `tailscale/serve-config.json`
