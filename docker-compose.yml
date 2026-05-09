@@ -99,9 +99,11 @@ services:
     build: ./services/deploy
     environment:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
-      - DEPLOY_SCRIPT=/scripts/deploy.sh
+      - DEPLOY_SCRIPT=/repo/scripts/deploy.sh
+      - DEPLOY_LOG_DIR=/repo/deploy-logs
     volumes:
-      - ./scripts:/scripts:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/repo
     networks:
       - frontend-net
     restart: unless-stopped

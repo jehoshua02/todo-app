@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Resolve the repo root (parent of the scripts/ directory)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# When invoked from the deploy container, /repo is the mounted repo root.
+# When invoked directly on the host, resolve relative to this script.
+if [ -d "/repo/.git" ]; then
+  REPO_ROOT="/repo"
+else
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+fi
 
-LOG_DIR="$HOME/deploy-logs"
+LOG_DIR="${DEPLOY_LOG_DIR:-$HOME/deploy-logs}"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/$(date +%Y%m%d-%H%M%S).log"
 

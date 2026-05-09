@@ -7,7 +7,7 @@
   "Web": {
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
-        "/webhook": {
+        "/deploy": {
           "Proxy": "http://deploy:9000"
         },
         "/": {

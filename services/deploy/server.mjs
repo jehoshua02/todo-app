@@ -49,7 +49,7 @@ function runDeploy() {
 }
 
 const server = createServer((req, res) => {
-  if (req.method !== "POST" || req.url !== "/webhook") {
+  if (req.method !== "POST" || req.url !== "/deploy") {
     res.writeHead(404).end("Not Found");
     return;
   }

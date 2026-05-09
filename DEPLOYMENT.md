@@ -149,13 +149,13 @@ Reboot Windows, wait ~30 seconds, then open `https://<your-hostname>.ts.net` —
 
 1. In your GitHub repo: **Settings → Webhooks → Add webhook**
 2. Set:
-   - **Payload URL**: `https://<your-hostname>.tail<net>.ts.net/webhook`
+   - **Payload URL**: `https://<your-hostname>.tail<net>.ts.net/deploy`
    - **Content type**: `application/json`
    - **Secret**: the value of `WEBHOOK_SECRET` from your `.env`
    - **Events**: choose "Just the push event"
 3. Click **Add webhook**
 
-On every merge to `main`, GitHub sends a signed payload to `/webhook`. The server validates the HMAC-SHA256 signature and runs `scripts/deploy.sh` if the push is to `refs/heads/main`.
+On every merge to `main`, GitHub sends a signed payload to `/deploy`. The server validates the HMAC-SHA256 signature and runs `scripts/deploy.sh` if the push is to `refs/heads/main`.
 
 Deploy logs are appended to `~/deploy-logs/` on the prod host.
 
