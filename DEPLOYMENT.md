@@ -7,8 +7,29 @@ This app runs on Docker Compose behind Tailscale Funnel, giving you HTTPS on a p
 - **Docker** installed and running (verified: `docker compose version`)
 - **Tailscale** installed and authenticated on the host machine (`tailscale status`)
 - **HTTPS certificates** enabled in Tailscale admin console: [Admin → DNS → Enable HTTPS](https://login.tailscale.com/admin/dns)
-- **Funnel** enabled in your tailnet ACL policy (Admin → Access Controls, add `"funnel": [...]` grant or toggle per-machine)
+- **Funnel** enabled in your tailnet ACL policy — add this to your ACL JSON at [Admin → Access Controls](https://login.tailscale.com/admin/acls):
+  ```json
+  "nodeAttrs": [
+    {
+      "target": ["*"],
+      "attr": ["funnel"]
+    }
+  ]
+  ```
 - **NSSM** installed on Windows for WSL autostart (see [Keeping Prod Up](#keeping-prod-up))
+
+## Dev + Prod on the Same Machine
+
+Each environment (dev, prod) is a separate git clone with its own `.env` file. Both stacks run simultaneously — no port conflicts because no host ports are exposed.
+
+Each clone's Tailscale container registers as its own node in your tailnet with its own public HTTPS URL:
+
+| Clone | `TS_HOSTNAME` | Public URL |
+|---|---|---|
+| `~/repos/todo-app` | `todo-dev` | `https://todo-dev.tail<net>.ts.net` |
+| `~/repos/todo-app-prod` | `todo-prod` | `https://todo-prod.tail<net>.ts.net` |
+
+**Important:** `RP_ID` and `RP_ORIGIN` in each `.env` must match that clone's public URL exactly, or WebAuthn will refuse to work.
 
 ## First Deploy
 
@@ -149,12 +170,39 @@ docker compose logs <service-name>
 **Tailscale not connecting:**
 ```bash
 docker compose logs tailscale
+docker compose exec tailscale tailscale status --self
 ```
 Check that `TS_AUTHKEY` is valid and HTTPS/Funnel are enabled in your tailnet admin.
+
+**Hostname registers as `todo-dev-1` instead of `todo-dev`:**
+A stale node with the same name exists in your tailnet. Go to [Admin → Machines](https://login.tailscale.com/admin/machines), delete the old offline node, then:
+```bash
+docker compose down tailscale
+docker volume rm <project>_tailscale-state
+docker compose up -d tailscale
+```
+The volume name prefix matches your Docker Compose project name (directory name by default).
+
+**Funnel says "cannot issue TLS certs":**
+HTTPS certificates aren't enabled for your tailnet. Go to [Admin → DNS](https://login.tailscale.com/admin/dns) and enable HTTPS, then restart the Tailscale container.
+
+**`DNS_PROBE_FINISHED_NXDOMAIN` in browser after Funnel is active:**
+DNS for new Tailscale nodes can take 1-2 minutes to propagate. Verify DNS resolves on the host:
+```bash
+getent hosts todo-dev.tail<net>.ts.net
+```
+If that returns the IP but the browser still fails, try a different browser or network (mobile data, not WiFi) to rule out local DNS cache.
+
+**`ERR_CONNECTION_REFUSED` when Funnel is active and DNS resolves:**
+The Tailscale cert may still be provisioning — wait 30 seconds and retry. Also confirm all services are up:
+```bash
+docker compose ps
+```
 
 **WebAuthn failing on mobile:**
 - Confirm `RP_ID` and `RP_ORIGIN` in `.env` exactly match the domain in the browser URL bar
 - Must be HTTPS — plain HTTP won't work for WebAuthn on non-localhost origins
+- After changing `RP_ID`/`RP_ORIGIN`, restart the auth service: `docker compose up -d auth`
 
 **WSL not starting after reboot:**
 ```powershell
