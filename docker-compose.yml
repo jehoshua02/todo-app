@@ -99,7 +99,7 @@ services:
     build: ./services/deploy
     environment:
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
-      - DEPLOY_SCRIPT=/repo/scripts/deploy.sh
+      - DEPLOY_SCRIPT=/repo/services/deploy/deploy.sh
       - DEPLOY_LOG_DIR=/repo/deploy-logs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -120,7 +120,7 @@ services:
     volumes:
       - tailscale-state:/var/lib/tailscale
       - /dev/net/tun:/dev/net/tun
-      - ./tailscale:/config:ro
+      - ./services/tailscale:/config:ro
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -136,12 +136,12 @@ services:
   e2e:
     build:
       context: .
-      dockerfile: e2e/Dockerfile
+      dockerfile: services/e2e/Dockerfile
     command: npx playwright test
     environment:
       - BASE_URL=http://frontend:80
     volumes:
-      - ./e2e/screenshots:/app/e2e/screenshots
+      - ./services/e2e/screenshots:/app/screenshots
     networks:
       - frontend-net
     depends_on:

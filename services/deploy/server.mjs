@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 const PORT = parseInt(process.env.PORT || "9000", 10);
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "";
-const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || "/scripts/deploy.sh";
+const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || "/repo/services/deploy/deploy.sh";
 const LOG_DIR = process.env.DEPLOY_LOG_DIR || join(process.env.HOME || "/root", "deploy-logs");
 
 mkdirSync(LOG_DIR, { recursive: true });

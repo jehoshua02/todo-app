@@ -1,8 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./e2e",
-  outputDir: "./e2e/test-results",
+  testDir: "./",
+  outputDir: "./test-results",
   timeout: 30_000,
   retries: 0,
   use: {

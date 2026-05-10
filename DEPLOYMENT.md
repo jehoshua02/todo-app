@@ -73,7 +73,7 @@ TASKS_DB_PASSWORD=<strong-password>
 ### 3. Run the deploy script
 
 ```bash
-./scripts/deploy.sh
+./services/deploy/deploy.sh
 ```
 
 This pulls latest, builds images, and starts all services. Logs are saved to `~/deploy-logs/`.
@@ -90,7 +90,7 @@ After the initial setup, deploying a new version is:
 
 ```bash
 cd ~/todo-app-prod
-./scripts/deploy.sh
+./services/deploy/deploy.sh
 ```
 
 ## Auto-Deploy via GitHub Webhook
@@ -155,7 +155,7 @@ Reboot Windows, wait ~30 seconds, then open `https://<your-hostname>.ts.net` —
    - **Events**: choose "Just the push event"
 3. Click **Add webhook**
 
-On every merge to `main`, GitHub sends a signed payload to `/deploy`. The server validates the HMAC-SHA256 signature and runs `scripts/deploy.sh` if the push is to `refs/heads/main`.
+On every merge to `main`, GitHub sends a signed payload to `/deploy`. The server validates the HMAC-SHA256 signature and runs `services/deploy/deploy.sh` if the push is to `refs/heads/main`.
 
 Deploy logs are appended to `~/deploy-logs/` on the prod host.
 
