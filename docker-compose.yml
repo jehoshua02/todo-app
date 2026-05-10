@@ -141,7 +141,7 @@ services:
     environment:
       - BASE_URL=http://frontend:80
     volumes:
-      - ./services/e2e/screenshots:/app/services/e2e/screenshots
+      - ./services/e2e/screenshots:/app/screenshots
     networks:
       - frontend-net
     depends_on:
