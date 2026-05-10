@@ -7,7 +7,7 @@ if [ -d "/repo/.git" ]; then
   REPO_ROOT="/repo"
 else
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 fi
 
 LOG_DIR="${DEPLOY_LOG_DIR:-$HOME/deploy-logs}"
