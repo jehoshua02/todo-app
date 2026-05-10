@@ -5,5 +5,4 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY playwright.config.ts ./
-COPY e2e/ ./e2e/
+COPY services/e2e/ ./services/e2e/

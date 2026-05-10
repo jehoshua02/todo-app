@@ -43,7 +43,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Inbox")).toBeVisible();
 
     // Screenshot: lists page after registration
-    await page.screenshot({ path: `e2e/screenshots/default-lists-after-register-${testInfo.project.name}.png` });
+    await page.screenshot({ path: `services/e2e/screenshots/default-lists-after-register-${testInfo.project.name}.png` });
 
     // --- Logout ---
     await page.getByRole("button", { name: "Sign out" }).click();
@@ -59,7 +59,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Inbox")).toBeVisible();
 
     // Screenshot: lists page after login
-    await page.screenshot({ path: `e2e/screenshots/default-lists-after-login-${testInfo.project.name}.png` });
+    await page.screenshot({ path: `services/e2e/screenshots/default-lists-after-login-${testInfo.project.name}.png` });
   });
 
   test("session persists across page refresh", async ({ page }) => {
@@ -136,7 +136,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByRole("heading", { name: "Create account" })).toBeVisible();
 
     await page.screenshot({
-      path: `e2e/screenshots/default-register-duplicate-error-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-register-duplicate-error-${testInfo.project.name}.png`,
     });
   });
 
@@ -153,7 +153,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 
     await page.screenshot({
-      path: `e2e/screenshots/default-login-unknown-error-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-login-unknown-error-${testInfo.project.name}.png`,
     });
   });
 
@@ -192,7 +192,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after rename
     await page.screenshot({
-      path: `e2e/screenshots/default-lists-after-rename-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-lists-after-rename-${testInfo.project.name}.png`,
     });
 
     // Verify Inbox has no rename button (system lists cannot be renamed)
@@ -240,7 +240,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after delete
     await page.screenshot({
-      path: `e2e/screenshots/default-lists-after-delete-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-lists-after-delete-${testInfo.project.name}.png`,
     });
   });
 
@@ -282,7 +282,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after reorder
     await page.screenshot({
-      path: `e2e/screenshots/default-lists-after-reorder-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-lists-after-reorder-${testInfo.project.name}.png`,
     });
 
     // Refresh and verify order persists
@@ -331,7 +331,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: empty task list
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-empty-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-empty-${testInfo.project.name}.png`,
     });
 
     // Create a task
@@ -351,7 +351,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: tasks in list
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-created-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-created-${testInfo.project.name}.png`,
     });
 
     // Verify tasks persist after refresh
@@ -398,7 +398,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: before completing
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-before-complete-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-before-complete-${testInfo.project.name}.png`,
     });
 
     // Complete the first task
@@ -411,7 +411,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after completing
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-after-complete-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-after-complete-${testInfo.project.name}.png`,
     });
 
     // Refresh — completed task should stay hidden
@@ -456,7 +456,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: task detail
     await page.screenshot({
-      path: `e2e/screenshots/default-task-detail-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-task-detail-${testInfo.project.name}.png`,
     });
 
     // Navigate back to tasks
@@ -497,7 +497,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: before editing
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-before-edit-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-before-edit-${testInfo.project.name}.png`,
     });
 
     // Click Edit button
@@ -524,7 +524,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after editing
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-after-edit-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-after-edit-${testInfo.project.name}.png`,
     });
 
     // Navigate back — updated title should show in list
@@ -573,7 +573,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: before deleting
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-before-delete-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-before-delete-${testInfo.project.name}.png`,
     });
 
     // Navigate to task detail
@@ -603,7 +603,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after deleting
     await page.screenshot({
-      path: `e2e/screenshots/default-tasks-after-delete-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-tasks-after-delete-${testInfo.project.name}.png`,
     });
 
     // Refresh — deleted task should stay gone
@@ -633,7 +633,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: before creating a list
     await page.screenshot({
-      path: `e2e/screenshots/default-lists-before-create-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-lists-before-create-${testInfo.project.name}.png`,
     });
 
     // Tap "New List" button
@@ -649,7 +649,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: after creating a list
     await page.screenshot({
-      path: `e2e/screenshots/default-lists-after-create-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-lists-after-create-${testInfo.project.name}.png`,
     });
 
     // Create a second list to confirm position ordering
@@ -662,7 +662,7 @@ test.describe("Auth + Lists flow", () => {
 
     // Screenshot: three lists
     await page.screenshot({
-      path: `e2e/screenshots/default-lists-three-lists-${testInfo.project.name}.png`,
+      path: `services/e2e/screenshots/default-lists-three-lists-${testInfo.project.name}.png`,
     });
   });
 });
