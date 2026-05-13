@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
-import { logoutSession } from '../api/auth';
-import { fetchLists, createList, renameList, deleteList, reorderLists, type TaskList } from '../api/tasks';
+import { useAuth } from '../auth/auth.context';
+import { logoutSession } from '../auth/auth.api';
+import { fetchLists, createList, renameList, deleteList, reorderLists } from './lists.api';
+import type { TaskList } from './lists.types';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
