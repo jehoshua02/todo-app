@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { registerWithPasskey } from '../api/auth';
-import { useAuth } from '../auth/AuthContext';
+import { registerWithPasskey } from './auth.api';
+import { useAuth } from './auth.context';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 

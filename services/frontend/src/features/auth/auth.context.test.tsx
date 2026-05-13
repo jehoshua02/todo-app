@@ -1,6 +1,6 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
-import { AuthProvider, useAuth } from './AuthContext';
-import * as authApi from '../api/auth';
+import { AuthProvider, useAuth } from './auth.context';
+import * as authApi from './auth.api';
 
 function AuthConsumer() {
   const { user, isLoading } = useAuth();

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
-import { fetchTask, updateTask, deleteTask, type Task, type TaskUpdate } from '../api/tasks';
+import { useAuth } from '../auth/auth.context';
+import { fetchTask, updateTask, deleteTask } from './tasks.api';
+import type { Task, TaskUpdate } from './tasks.types';
 
 type LoadState = 'loading' | 'ready' | 'error';
 

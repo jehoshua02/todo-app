@@ -1,4 +1,4 @@
-import { refreshSession, logoutSession } from './auth';
+import { refreshSession, logoutSession } from './auth.api';
 
 describe('refreshSession', () => {
   afterEach(() => {

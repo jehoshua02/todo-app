@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { refreshSession } from '../api/auth';
+import { refreshSession } from './auth.api';
 
 interface User {
   userId: string;
