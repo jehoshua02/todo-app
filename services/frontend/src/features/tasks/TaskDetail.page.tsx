@@ -17,6 +17,9 @@ export default function TaskDetail() {
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
+  const [editTimeEstimate, setEditTimeEstimate] = useState('');
+  const [editUrgency, setEditUrgency] = useState('');
+  const [editImportance, setEditImportance] = useState('');
   const [editError, setEditError] = useState('');
   const [isEditSaving, setIsEditSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -58,6 +61,9 @@ export default function TaskDetail() {
     setEditTitle(task.title);
     setEditDescription(task.description ?? '');
     setEditDueDate(task.dueDate ? task.dueDate.slice(0, 10) : '');
+    setEditTimeEstimate(task.timeEstimate != null ? String(task.timeEstimate) : '');
+    setEditUrgency(task.urgency != null ? String(task.urgency) : '');
+    setEditImportance(task.importance != null ? String(task.importance) : '');
     setEditError('');
   }
 
@@ -66,6 +72,9 @@ export default function TaskDetail() {
     setEditTitle('');
     setEditDescription('');
     setEditDueDate('');
+    setEditTimeEstimate('');
+    setEditUrgency('');
+    setEditImportance('');
     setEditError('');
   }
 
@@ -89,6 +98,21 @@ export default function TaskDetail() {
     const currentDue = task.dueDate ? task.dueDate.slice(0, 10) : '';
     if (editDueDate !== currentDue) {
       fields.dueDate = editDueDate || null;
+    }
+
+    const newTimeEstimate = editTimeEstimate ? parseInt(editTimeEstimate, 10) : null;
+    if (newTimeEstimate !== task.timeEstimate) {
+      fields.timeEstimate = newTimeEstimate;
+    }
+
+    const newUrgency = editUrgency ? parseInt(editUrgency, 10) : null;
+    if (newUrgency !== task.urgency) {
+      fields.urgency = newUrgency;
+    }
+
+    const newImportance = editImportance ? parseInt(editImportance, 10) : null;
+    if (newImportance !== task.importance) {
+      fields.importance = newImportance;
     }
 
     if (Object.keys(fields).length === 0) {
@@ -190,6 +214,57 @@ export default function TaskDetail() {
                   aria-label="Edit task due date"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                 />
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Estimate (minutes)</label>
+                  <input
+                    type="number"
+                    value={editTimeEstimate}
+                    onChange={(e) => setEditTimeEstimate(e.target.value)}
+                    min={1}
+                    max={1440}
+                    placeholder="e.g. 30"
+                    disabled={isEditSaving}
+                    aria-label="Edit time estimate"
+                    data-testid="task-time-estimate"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Urgency</label>
+                    <select
+                      value={editUrgency}
+                      onChange={(e) => setEditUrgency(e.target.value)}
+                      disabled={isEditSaving}
+                      aria-label="Edit urgency"
+                      data-testid="task-urgency"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                    >
+                      <option value="">None</option>
+                      <option value="1">1 – Low</option>
+                      <option value="2">2 – Medium</option>
+                      <option value="3">3 – High</option>
+                      <option value="4">4 – Critical</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">Importance</label>
+                    <select
+                      value={editImportance}
+                      onChange={(e) => setEditImportance(e.target.value)}
+                      disabled={isEditSaving}
+                      aria-label="Edit importance"
+                      data-testid="task-importance"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                    >
+                      <option value="">None</option>
+                      <option value="1">1 – Low</option>
+                      <option value="2">2 – Medium</option>
+                      <option value="3">3 – High</option>
+                      <option value="4">4 – Critical</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleSaveEdit}
@@ -244,6 +319,25 @@ export default function TaskDetail() {
                       <span className="text-xs text-gray-500" data-testid="task-due-date">
                         Due {task.dueDate.slice(0, 10)}
                       </span>
+                    </div>
+                  )}
+
+                  {task.timeEstimate != null && (
+                    <div className="mt-2 pl-8">
+                      <span className="inline-block text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded" data-testid="task-time-estimate-display">
+                        {task.timeEstimate >= 60 ? `${Math.floor(task.timeEstimate / 60)}h${task.timeEstimate % 60 ? ` ${task.timeEstimate % 60}m` : ''}` : `${task.timeEstimate}m`}
+                      </span>
+                    </div>
+                  )}
+
+                  {(task.urgency != null || task.importance != null) && (
+                    <div className="mt-2 pl-8 flex items-center gap-3 text-xs text-gray-500">
+                      {task.urgency != null && (
+                        <span data-testid="task-urgency-display">Urgency: {['Low', 'Medium', 'High', 'Critical'][task.urgency - 1]}</span>
+                      )}
+                      {task.importance != null && (
+                        <span data-testid="task-importance-display">Importance: {['Low', 'Medium', 'High', 'Critical'][task.importance - 1]}</span>
+                      )}
                     </div>
                   )}
 

@@ -7,6 +7,10 @@ export interface Task {
   dueDate: string | null;
   completed: boolean;
   createdAt: string;
+  timeEstimate: number | null;
+  urgency: number | null;
+  importance: number | null;
+  position: number;
 }
 
 export interface TaskUpdate {
@@ -14,4 +18,7 @@ export interface TaskUpdate {
   description?: string | null;
   dueDate?: string | null;
   completed?: boolean;
+  timeEstimate?: number | null;
+  urgency?: number | null;
+  importance?: number | null;
 }

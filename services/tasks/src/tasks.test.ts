@@ -13,7 +13,9 @@ vi.mock('./db', () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      aggregate: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -70,11 +72,11 @@ describe('GET /api/tasks/lists/:listId/tasks', () => {
     expect(res.body.error).toBe('List not found');
   });
 
-  it('returns tasks ordered by creation date ascending', async () => {
+  it('returns tasks ordered by position ascending', async () => {
     mockPrisma.list.findUnique.mockResolvedValue(LIST);
     const tasks = [
-      { id: 't1', listId: 'list-1', userId: 'user-1', title: 'First', completed: false, createdAt: new Date('2026-01-01') },
-      { id: 't2', listId: 'list-1', userId: 'user-1', title: 'Second', completed: false, createdAt: new Date('2026-01-02') },
+      { id: 't1', listId: 'list-1', userId: 'user-1', title: 'First', completed: false, position: 0, createdAt: new Date('2026-01-01') },
+      { id: 't2', listId: 'list-1', userId: 'user-1', title: 'Second', completed: false, position: 1, createdAt: new Date('2026-01-02') },
     ];
     mockPrisma.task.findMany.mockResolvedValue(tasks);
 
@@ -89,7 +91,7 @@ describe('GET /api/tasks/lists/:listId/tasks', () => {
 
     expect(mockPrisma.task.findMany).toHaveBeenCalledWith({
       where: { listId: 'list-1', userId: 'user-1' },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { position: 'asc' },
     });
   });
 
@@ -229,14 +231,16 @@ describe('POST /api/tasks/lists/:listId/tasks', () => {
     expect(res.body.error).toBe('List not found');
   });
 
-  it('creates a task with valid title', async () => {
+  it('creates a task with valid title and auto-assigns position', async () => {
     mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.aggregate.mockResolvedValue({ _max: { position: 2 } });
     const created = {
       id: 'task-1',
       listId: 'list-1',
       userId: 'user-1',
       title: 'Buy milk',
       completed: false,
+      position: 3,
       createdAt: new Date('2026-01-01'),
     };
     mockPrisma.task.create.mockResolvedValue(created);
@@ -248,16 +252,21 @@ describe('POST /api/tasks/lists/:listId/tasks', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.task.title).toBe('Buy milk');
-    expect(res.body.task.completed).toBe(false);
+    expect(res.body.task.position).toBe(3);
+    expect(mockPrisma.task.aggregate).toHaveBeenCalledWith({
+      where: { listId: 'list-1' },
+      _max: { position: true },
+    });
     expect(mockPrisma.task.create).toHaveBeenCalledWith({
-      data: { listId: 'list-1', userId: 'user-1', title: 'Buy milk' },
+      data: { listId: 'list-1', userId: 'user-1', title: 'Buy milk', position: 3 },
     });
   });
 
   it('trims whitespace from title', async () => {
     mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.aggregate.mockResolvedValue({ _max: { position: null } });
     mockPrisma.task.create.mockResolvedValue({
-      id: 'task-1', listId: 'list-1', userId: 'user-1', title: 'Trimmed', completed: false, createdAt: new Date(),
+      id: 'task-1', listId: 'list-1', userId: 'user-1', title: 'Trimmed', completed: false, position: 0, createdAt: new Date(),
     });
 
     const res = await request(app)
@@ -267,7 +276,7 @@ describe('POST /api/tasks/lists/:listId/tasks', () => {
 
     expect(res.status).toBe(201);
     expect(mockPrisma.task.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ title: 'Trimmed' }),
+      data: expect.objectContaining({ title: 'Trimmed', position: 0 }),
     });
   });
 
@@ -743,5 +752,284 @@ describe('DELETE /api/tasks/lists/:listId/tasks/:taskId', () => {
     expect(mockPrisma.task.delete).toHaveBeenCalledWith({
       where: { id: 'task-1' },
     });
+  });
+});
+
+describe('POST /api/tasks/lists/:listId/tasks — scheduling fields', () => {
+  it('creates a task with scheduling fields', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.aggregate.mockResolvedValue({ _max: { position: 0 } });
+    const created = { ...TASK, timeEstimate: 30, urgency: 2, importance: 3, position: 1 };
+    mockPrisma.task.create.mockResolvedValue(created);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk', timeEstimate: 30, urgency: 2, importance: 3 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.task.timeEstimate).toBe(30);
+    expect(res.body.task.urgency).toBe(2);
+    expect(res.body.task.importance).toBe(3);
+    expect(mockPrisma.task.create).toHaveBeenCalledWith({
+      data: { listId: 'list-1', userId: 'user-1', title: 'Buy milk', timeEstimate: 30, urgency: 2, importance: 3, position: 1 },
+    });
+  });
+
+  it('returns 400 for timeEstimate=0', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk', timeEstimate: 0 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('timeEstimate must be between 1 and 1440');
+  });
+
+  it('returns 400 for timeEstimate=1441', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk', timeEstimate: 1441 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('timeEstimate must be between 1 and 1440');
+  });
+
+  it('returns 400 for urgency=0', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk', urgency: 0 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('urgency must be between 1 and 4');
+  });
+
+  it('returns 400 for urgency=5', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk', urgency: 5 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('urgency must be between 1 and 4');
+  });
+
+  it('returns 400 for non-integer timeEstimate', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk', timeEstimate: 'thirty' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('timeEstimate must be an integer');
+  });
+
+  it('assigns position 0 when list has no tasks', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.aggregate.mockResolvedValue({ _max: { position: null } });
+    mockPrisma.task.create.mockResolvedValue({ ...TASK, position: 0 });
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks')
+      .set('Cookie', authCookie('user-1'))
+      .send({ title: 'Buy milk' });
+
+    expect(res.status).toBe(201);
+    expect(mockPrisma.task.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ position: 0 }),
+    });
+  });
+});
+
+describe('PATCH /api/tasks/lists/:listId/tasks/:taskId — scheduling fields', () => {
+  it('updates timeEstimate', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, timeEstimate: 60 });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ timeEstimate: 60 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.timeEstimate).toBe(60);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { timeEstimate: 60 },
+    });
+  });
+
+  it('updates urgency and importance', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, urgency: 3, importance: 4 });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ urgency: 3, importance: 4 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.urgency).toBe(3);
+    expect(res.body.task.importance).toBe(4);
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { urgency: 3, importance: 4 },
+    });
+  });
+
+  it('clears scheduling fields with null', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, timeEstimate: 30, urgency: 2, importance: 3 });
+    mockPrisma.task.update.mockResolvedValue({ ...TASK, timeEstimate: null, urgency: null, importance: null });
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ timeEstimate: null, urgency: null, importance: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.task.timeEstimate).toBeNull();
+    expect(res.body.task.urgency).toBeNull();
+    expect(res.body.task.importance).toBeNull();
+    expect(mockPrisma.task.update).toHaveBeenCalledWith({
+      where: { id: 'task-1' },
+      data: { timeEstimate: null, urgency: null, importance: null },
+    });
+  });
+
+  it('returns 400 for invalid timeEstimate on update', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ timeEstimate: 1441 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('timeEstimate must be between 1 and 1440');
+  });
+
+  it('returns 400 for invalid importance on update', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+
+    const res = await request(app)
+      .patch('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'))
+      .send({ importance: 5 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('importance must be between 1 and 4');
+  });
+});
+
+describe('PUT /api/tasks/lists/:listId/tasks/reorder', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .send({ taskIds: ['t1', 't2'] });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when list does not exist', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ taskIds: ['t1'] });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('List not found');
+  });
+
+  it('returns 400 for missing taskIds', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('taskIds must be a non-empty array');
+  });
+
+  it('returns 400 for duplicate taskIds', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ taskIds: ['t1', 't1'] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Duplicate taskIds are not allowed');
+  });
+
+  it('returns 400 when taskIds do not match list tasks', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findMany.mockResolvedValue([{ id: 't1' }, { id: 't2' }]);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ taskIds: ['t1', 't3'] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('taskIds must include only tasks in the list');
+  });
+
+  it('returns 400 when taskIds count does not match', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findMany.mockResolvedValue([{ id: 't1' }, { id: 't2' }, { id: 't3' }]);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ taskIds: ['t1', 't2'] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('taskIds must include all tasks in the list');
+  });
+
+  it('reorders tasks successfully', async () => {
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    const selectTasks = [{ id: 't1' }, { id: 't2' }];
+    const reorderedTasks = [
+      { id: 't2', position: 0, title: 'Second' },
+      { id: 't1', position: 1, title: 'First' },
+    ];
+    mockPrisma.task.findMany
+      .mockResolvedValueOnce(selectTasks)
+      .mockResolvedValueOnce(reorderedTasks);
+    mockPrisma.task.update.mockResolvedValue({});
+    mockPrisma.$transaction.mockResolvedValue([]);
+
+    const res = await request(app)
+      .put('/api/tasks/lists/list-1/tasks/reorder')
+      .set('Cookie', authCookie('user-1'))
+      .send({ taskIds: ['t2', 't1'] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.tasks).toHaveLength(2);
+    expect(res.body.tasks[0].id).toBe('t2');
+    expect(res.body.tasks[1].id).toBe('t1');
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
   });
 });
