@@ -665,4 +665,141 @@ test.describe("Auth + Lists flow", () => {
       path: `screenshots/default-lists-three-lists-${testInfo.project.name}.png`,
     });
   });
+
+  test("user can set scheduling fields on a task", async ({ page }, testInfo) => {
+    const schedUser = `e2e-sched-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(schedUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Navigate into Inbox
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Create a task
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Scheduled task");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Scheduled task")).toBeVisible({ timeout: 5_000 });
+
+    // Navigate to task detail
+    await page.getByLabel("View Scheduled task").click();
+    await expect(page.getByRole("heading", { name: "Task Detail" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Click Edit
+    await page.getByLabel("Edit task").click();
+    await expect(page.getByLabel("Edit time estimate")).toBeVisible();
+
+    // Set time estimate to 90 minutes
+    await page.getByLabel("Edit time estimate").fill("90");
+
+    // Set urgency to High (3)
+    await page.getByLabel("Edit urgency").selectOption("3");
+
+    // Set importance to Critical (4)
+    await page.getByLabel("Edit importance").selectOption("4");
+
+    // Screenshot: edit form with scheduling fields filled
+    await page.screenshot({
+      path: `screenshots/default-task-scheduling-edit-${testInfo.project.name}.png`,
+    });
+
+    // Save
+    await page.getByRole("button", { name: "Save" }).click();
+
+    // Verify scheduling fields display on detail page
+    await expect(page.getByTestId("task-time-estimate-display")).toHaveText("1h 30m", { timeout: 5_000 });
+    await expect(page.getByTestId("task-urgency-display")).toHaveText("Urgency: High");
+    await expect(page.getByTestId("task-importance-display")).toHaveText("Importance: Critical");
+
+    // Screenshot: task detail with scheduling fields
+    await page.screenshot({
+      path: `screenshots/default-task-scheduling-detail-${testInfo.project.name}.png`,
+    });
+
+    // Refresh — scheduling fields should persist
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Task Detail" })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("task-time-estimate-display")).toHaveText("1h 30m");
+    await expect(page.getByTestId("task-urgency-display")).toHaveText("Urgency: High");
+    await expect(page.getByTestId("task-importance-display")).toHaveText("Importance: Critical");
+
+    // Navigate back to list — verify badge and priority dot
+    await page.getByLabel("Back to tasks").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Time badge should show "1h 30m"
+    await expect(page.getByText("1h 30m")).toBeVisible();
+
+    // Screenshot: list view with scheduling indicators
+    await page.screenshot({
+      path: `screenshots/default-task-scheduling-list-${testInfo.project.name}.png`,
+    });
+  });
+
+  test("scheduling fields can be cleared", async ({ page }, testInfo) => {
+    const clearUser = `e2e-clear-${Date.now()}`;
+    await page.goto("/register");
+    await page.getByLabel("Username").fill(clearUser);
+    await page.getByRole("button", { name: "Register with passkey" }).click();
+
+    await expect(page.getByRole("heading", { name: "Lists" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    // Navigate into Inbox, create a task
+    await page.getByText("Inbox").click();
+    await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.getByRole("button", { name: "New Task" }).click();
+    await page.getByLabel("New task title").fill("Clear fields task");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Clear fields task")).toBeVisible({ timeout: 5_000 });
+
+    // Go to detail, set scheduling fields
+    await page.getByLabel("View Clear fields task").click();
+    await expect(page.getByRole("heading", { name: "Task Detail" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.getByLabel("Edit task").click();
+    await page.getByLabel("Edit time estimate").fill("45");
+    await page.getByLabel("Edit urgency").selectOption("2");
+    await page.getByLabel("Edit importance").selectOption("2");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    await expect(page.getByTestId("task-time-estimate-display")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId("task-urgency-display")).toHaveText("Urgency: Medium");
+
+    // Now clear them
+    await page.getByLabel("Edit task").click();
+    await page.getByLabel("Edit time estimate").clear();
+    await page.getByLabel("Edit urgency").selectOption("");
+    await page.getByLabel("Edit importance").selectOption("");
+    await page.getByRole("button", { name: "Save" }).click();
+
+    // Scheduling displays should be gone
+    await expect(page.getByTestId("task-time-estimate-display")).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId("task-urgency-display")).not.toBeVisible();
+    await expect(page.getByTestId("task-importance-display")).not.toBeVisible();
+
+    // Screenshot: task detail with no scheduling fields
+    await page.screenshot({
+      path: `screenshots/default-task-scheduling-cleared-${testInfo.project.name}.png`,
+    });
+  });
 });
