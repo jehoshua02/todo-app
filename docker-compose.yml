@@ -24,7 +24,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-dev-secret-change-me}
       - RP_NAME=Todo App
       - RP_ID=${RP_ID:-localhost}
-      - RP_ORIGIN=${RP_ORIGIN:-http://localhost:8080}
+      - RP_ORIGIN=${RP_ORIGIN:-http://localhost}
     networks:
       - frontend-net
       - auth-net
@@ -139,11 +139,10 @@ services:
       dockerfile: services/e2e/Dockerfile
     command: npx playwright test
     environment:
-      - BASE_URL=http://frontend:80
+      - BASE_URL=http://localhost:80
     volumes:
       - ./services/e2e/screenshots:/app/screenshots
-    networks:
-      - frontend-net
+    network_mode: "service:frontend"
     depends_on:
       frontend:
         condition: service_healthy

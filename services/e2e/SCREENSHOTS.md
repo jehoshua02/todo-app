@@ -37,5 +37,15 @@ Captured by E2E tests. Each row shows desktop (1280×720) and mobile (375×667) 
 | After edit | ![](screenshots/default-tasks-after-edit-desktop.png) | ![](screenshots/default-tasks-after-edit-mobile.png) |
 | Before complete | ![](screenshots/default-tasks-before-complete-desktop.png) | ![](screenshots/default-tasks-before-complete-mobile.png) |
 | After complete | ![](screenshots/default-tasks-after-complete-desktop.png) | ![](screenshots/default-tasks-after-complete-mobile.png) |
+| Detail | ![](screenshots/default-task-detail-desktop.png) | ![](screenshots/default-task-detail-mobile.png) |
 | Before delete | ![](screenshots/default-tasks-before-delete-desktop.png) | ![](screenshots/default-tasks-before-delete-mobile.png) |
 | After delete | ![](screenshots/default-tasks-after-delete-desktop.png) | ![](screenshots/default-tasks-after-delete-mobile.png) |
+
+## Scheduling
+
+| Screen | Desktop | Mobile |
+|--------|---------|--------|
+| Edit form | ![](screenshots/default-task-scheduling-edit-desktop.png) | ![](screenshots/default-task-scheduling-edit-mobile.png) |
+| Detail view | ![](screenshots/default-task-scheduling-detail-desktop.png) | ![](screenshots/default-task-scheduling-detail-mobile.png) |
+| List view | ![](screenshots/default-task-scheduling-list-desktop.png) | ![](screenshots/default-task-scheduling-list-mobile.png) |
+| Cleared | ![](screenshots/default-task-scheduling-cleared-desktop.png) | ![](screenshots/default-task-scheduling-cleared-mobile.png) |
