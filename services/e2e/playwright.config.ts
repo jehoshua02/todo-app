@@ -3,8 +3,15 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./",
   outputDir: "./test-results",
+  snapshotPathTemplate: "screenshots/{arg}-{projectName}{ext}",
   timeout: 30_000,
   retries: 0,
+  workers: 1,
+  expect: {
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+    },
+  },
   use: {
     baseURL: process.env.BASE_URL || "http://localhost:8080",
     screenshot: "on",

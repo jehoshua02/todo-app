@@ -1,6 +1,7 @@
 # ── GSD ─────────────────────────────────────────────────────────
 .gsd/
 .gsd-id
+.agents/
 
 .mcp.json
 .bg-shell/
@@ -31,3 +32,19 @@ coverage/
 tmp/test-results/
 playwright-report/
 test-results/
+
+# ── GSD baseline (auto-generated) ──
+.gsd
+nul
+nul.*
+con
+con.*
+prn
+prn.*
+aux
+aux.*
+com[1-9]
+com[1-9].*
+lpt[1-9]
+lpt[1-9].*
+tmp/

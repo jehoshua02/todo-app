@@ -155,6 +155,25 @@ export default function ListDetail() {
                             Due {task.dueDate.slice(0, 10)}
                           </span>
                         )}
+                        <span className="flex items-center gap-2 mt-0.5">
+                          {task.timeEstimate != null && (
+                            <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {task.timeEstimate >= 60 ? `${Math.floor(task.timeEstimate / 60)}h${task.timeEstimate % 60 ? ` ${task.timeEstimate % 60}m` : ''}` : `${task.timeEstimate}m`}
+                            </span>
+                          )}
+                          {(task.urgency != null || task.importance != null) && (
+                            <span
+                              className={`inline-block w-2 h-2 rounded-full ${
+                                Math.max(task.urgency ?? 0, task.importance ?? 0) >= 4
+                                  ? 'bg-red-500'
+                                  : Math.max(task.urgency ?? 0, task.importance ?? 0) >= 3
+                                    ? 'bg-yellow-500'
+                                    : 'bg-green-500'
+                              }`}
+                              title={`Priority: ${Math.max(task.urgency ?? 0, task.importance ?? 0)}`}
+                            />
+                          )}
+                        </span>
                       </button>
                     </div>
                   </li>
