@@ -111,6 +111,9 @@ services:
   tailscale:
     image: tailscale/tailscale:latest
     hostname: ${TS_HOSTNAME:-todo-app}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
       - TS_EXTRA_ARGS=--accept-dns=false --hostname=${TS_HOSTNAME:-todo-app}
@@ -134,18 +137,16 @@ services:
         condition: service_started
 
   e2e:
-    build:
-      context: .
-      dockerfile: services/e2e/Dockerfile
+    build: ./services/e2e
     command: npx playwright test
     environment:
-      - BASE_URL=http://localhost:80
+      - BASE_URL=${RP_ORIGIN}
     volumes:
       - ./services/e2e/screenshots:/app/screenshots
-    network_mode: "service:frontend"
+    network_mode: service:tailscale
     depends_on:
-      frontend:
-        condition: service_healthy
+      tailscale:
+        condition: service_started
     profiles:
       - e2e
 
