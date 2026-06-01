@@ -26,7 +26,7 @@ test.describe("Auth + Lists flow", () => {
 
   test("user can register, see Inbox, logout, and login again", async ({
     page,
-  }, testInfo) => {
+  }) => {
     // --- Register ---
     await page.goto("/register");
     await expect(
@@ -42,8 +42,7 @@ test.describe("Auth + Lists flow", () => {
     });
     await expect(page.getByText("Inbox")).toBeVisible();
 
-    // Screenshot: lists page after registration
-    await page.screenshot({ path: `screenshots/default-lists-after-register-${testInfo.project.name}.png` });
+    await expect(page).toHaveScreenshot("lists-after-register.png");
 
     // --- Logout ---
     await page.getByRole("button", { name: "Sign out" }).click();
@@ -58,8 +57,7 @@ test.describe("Auth + Lists flow", () => {
     });
     await expect(page.getByText("Inbox")).toBeVisible();
 
-    // Screenshot: lists page after login
-    await page.screenshot({ path: `screenshots/default-lists-after-login-${testInfo.project.name}.png` });
+    await expect(page).toHaveScreenshot("lists-after-login.png");
   });
 
   test("session persists across page refresh", async ({ page }) => {
@@ -112,7 +110,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(listItems.first()).toContainText("Inbox");
   });
 
-  test("registering a duplicate username shows an error", async ({ page }, testInfo) => {
+  test("registering a duplicate username shows an error", async ({ page }) => {
     // Register the first user
     const dupUser = `e2e-dup-${Date.now()}`;
     await page.goto("/register");
@@ -135,14 +133,12 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByRole("alert")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("heading", { name: "Create account" })).toBeVisible();
 
-    await page.screenshot({
-      path: `screenshots/default-register-duplicate-error-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("register-duplicate-error.png");
   });
 
   test("logging in with an unknown username shows an error", async ({
     page,
-  }, testInfo) => {
+  }) => {
     const unknownUser = `e2e-unknown-${Date.now()}`;
     await page.goto("/login");
     await page.getByLabel("Username").fill(unknownUser);
@@ -152,12 +148,10 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByRole("alert")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 
-    await page.screenshot({
-      path: `screenshots/default-login-unknown-error-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("login-unknown-error.png");
   });
 
-  test("user can rename a list but not Inbox", async ({ page }, testInfo) => {
+  test("user can rename a list but not Inbox", async ({ page }) => {
     const renameUser = `e2e-rename-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(renameUser);
@@ -190,16 +184,13 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("New Name")).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText("Old Name")).not.toBeVisible();
 
-    // Screenshot: after rename
-    await page.screenshot({
-      path: `screenshots/default-lists-after-rename-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("lists-after-rename.png");
 
     // Verify Inbox has no rename button (system lists cannot be renamed)
     await expect(page.getByLabel("Rename Inbox")).not.toBeVisible();
   });
 
-  test("user can delete a list but not Inbox", async ({ page }, testInfo) => {
+  test("user can delete a list but not Inbox", async ({ page }) => {
     const deleteUser = `e2e-delete-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(deleteUser);
@@ -238,13 +229,10 @@ test.describe("Auth + Lists flow", () => {
     // Inbox should still be there
     await expect(page.getByText("Inbox")).toBeVisible();
 
-    // Screenshot: after delete
-    await page.screenshot({
-      path: `screenshots/default-lists-after-delete-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("lists-after-delete.png");
   });
 
-  test("user can reorder lists and order persists after refresh", async ({ page }, testInfo) => {
+  test("user can reorder lists and order persists after refresh", async ({ page }) => {
     const reorderUser = `e2e-reorder-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(reorderUser);
@@ -280,10 +268,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(listItems.nth(1)).toContainText("Personal", { timeout: 5_000 });
     await expect(listItems.nth(2)).toContainText("Work");
 
-    // Screenshot: after reorder
-    await page.screenshot({
-      path: `screenshots/default-lists-after-reorder-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("lists-after-reorder.png");
 
     // Refresh and verify order persists
     await page.reload();
@@ -309,7 +294,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByLabel("Move Work down")).toBeDisabled();
   });
 
-  test("user can create a task in a list", async ({ page }, testInfo) => {
+  test("user can create a task in a list", async ({ page }) => {
     const taskUser = `e2e-task-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(taskUser);
@@ -329,10 +314,7 @@ test.describe("Auth + Lists flow", () => {
     // Should show empty state
     await expect(page.getByText("No tasks yet")).toBeVisible();
 
-    // Screenshot: empty task list
-    await page.screenshot({
-      path: `screenshots/default-tasks-empty-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-empty.png");
 
     // Create a task
     await page.getByRole("button", { name: "New Task" }).click();
@@ -349,10 +331,7 @@ test.describe("Auth + Lists flow", () => {
 
     await expect(page.getByText("Walk the dog")).toBeVisible({ timeout: 5_000 });
 
-    // Screenshot: tasks in list
-    await page.screenshot({
-      path: `screenshots/default-tasks-created-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-created.png");
 
     // Verify tasks persist after refresh
     await page.reload();
@@ -369,7 +348,7 @@ test.describe("Auth + Lists flow", () => {
     });
   });
 
-  test("user can complete a task and it disappears", async ({ page }, testInfo) => {
+  test("user can complete a task and it disappears", async ({ page }) => {
     const completeUser = `e2e-complete-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(completeUser);
@@ -396,10 +375,7 @@ test.describe("Auth + Lists flow", () => {
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Task to keep")).toBeVisible({ timeout: 5_000 });
 
-    // Screenshot: before completing
-    await page.screenshot({
-      path: `screenshots/default-tasks-before-complete-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-before-complete.png");
 
     // Complete the first task
     await page.getByLabel("Complete Task to complete").click();
@@ -409,10 +385,7 @@ test.describe("Auth + Lists flow", () => {
     // Other task should still be visible
     await expect(page.getByText("Task to keep")).toBeVisible();
 
-    // Screenshot: after completing
-    await page.screenshot({
-      path: `screenshots/default-tasks-after-complete-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-after-complete.png");
 
     // Refresh — completed task should stay hidden
     await page.reload();
@@ -423,7 +396,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Task to keep")).toBeVisible();
   });
 
-  test("user can view task detail", async ({ page }, testInfo) => {
+  test("user can view task detail", async ({ page }) => {
     const detailUser = `e2e-detail-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(detailUser);
@@ -454,10 +427,7 @@ test.describe("Auth + Lists flow", () => {
     });
     await expect(page.getByTestId("task-title")).toHaveText("Detail test task");
 
-    // Screenshot: task detail
-    await page.screenshot({
-      path: `screenshots/default-task-detail-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("task-detail.png");
 
     // Navigate back to tasks
     await page.getByLabel("Back to tasks").click();
@@ -467,7 +437,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Detail test task")).toBeVisible();
   });
 
-  test("user can edit a task from detail page", async ({ page }, testInfo) => {
+  test("user can edit a task from detail page", async ({ page }) => {
     const editUser = `e2e-edit-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(editUser);
@@ -495,10 +465,7 @@ test.describe("Auth + Lists flow", () => {
       timeout: 10_000,
     });
 
-    // Screenshot: before editing
-    await page.screenshot({
-      path: `screenshots/default-tasks-before-edit-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-before-edit.png");
 
     // Click Edit button
     await page.getByLabel("Edit task").click();
@@ -522,10 +489,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByTestId("task-description")).toHaveText("A detailed description");
     await expect(page.getByTestId("task-due-date")).toContainText("2026-12-31");
 
-    // Screenshot: after editing
-    await page.screenshot({
-      path: `screenshots/default-tasks-after-edit-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-after-edit.png");
 
     // Navigate back — updated title should show in list
     await page.getByLabel("Back to tasks").click();
@@ -544,7 +508,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Due 2026-12-31")).toBeVisible();
   });
 
-  test("user can delete a task from detail page", async ({ page }, testInfo) => {
+  test("user can delete a task from detail page", async ({ page }) => {
     const deleteTaskUser = `e2e-deltask-${Date.now()}`;
     await page.goto("/register");
     await page.getByLabel("Username").fill(deleteTaskUser);
@@ -571,10 +535,7 @@ test.describe("Auth + Lists flow", () => {
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Task to keep")).toBeVisible({ timeout: 5_000 });
 
-    // Screenshot: before deleting
-    await page.screenshot({
-      path: `screenshots/default-tasks-before-delete-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-before-delete.png");
 
     // Navigate to task detail
     await page.getByLabel("View Task to delete").click();
@@ -601,10 +562,7 @@ test.describe("Auth + Lists flow", () => {
     // Other task should still be visible
     await expect(page.getByText("Task to keep")).toBeVisible();
 
-    // Screenshot: after deleting
-    await page.screenshot({
-      path: `screenshots/default-tasks-after-delete-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("tasks-after-delete.png");
 
     // Refresh — deleted task should stay gone
     await page.reload();
@@ -615,7 +573,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Task to keep")).toBeVisible();
   });
 
-  test("user can create a new list", async ({ page }, testInfo) => {
+  test("user can create a new list", async ({ page }) => {
     // Register a fresh user
     const listUser = `e2e-list-${Date.now()}`;
     await page.goto("/register");
@@ -631,10 +589,7 @@ test.describe("Auth + Lists flow", () => {
     const listItems = page.locator("ul > li");
     await expect(listItems).toHaveCount(1);
 
-    // Screenshot: before creating a list
-    await page.screenshot({
-      path: `screenshots/default-lists-before-create-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("lists-before-create.png");
 
     // Tap "New List" button
     await page.getByRole("button", { name: "New List" }).click();
@@ -647,10 +602,7 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Shopping")).toBeVisible({ timeout: 5_000 });
     await expect(listItems).toHaveCount(2);
 
-    // Screenshot: after creating a list
-    await page.screenshot({
-      path: `screenshots/default-lists-after-create-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("lists-after-create.png");
 
     // Create a second list to confirm position ordering
     await page.getByRole("button", { name: "New List" }).click();
@@ -660,9 +612,6 @@ test.describe("Auth + Lists flow", () => {
     await expect(page.getByText("Work")).toBeVisible({ timeout: 5_000 });
     await expect(listItems).toHaveCount(3);
 
-    // Screenshot: three lists
-    await page.screenshot({
-      path: `screenshots/default-lists-three-lists-${testInfo.project.name}.png`,
-    });
+    await expect(page).toHaveScreenshot("lists-three-lists.png");
   });
 });
