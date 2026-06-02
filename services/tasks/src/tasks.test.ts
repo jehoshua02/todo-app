@@ -1177,6 +1177,113 @@ describe('DELETE /api/tasks/lists/:listId/tasks/:taskId/dependencies/:blockingTa
   });
 });
 
+describe('POST /api/tasks/lists/:listId/tasks/:taskId/dependencies — cycle detection', () => {
+  const TASK_A = { id: 'task-a', listId: 'list-1', userId: 'user-1', title: 'A', completed: false, createdAt: new Date() };
+  const TASK_B = { id: 'task-b', listId: 'list-1', userId: 'user-1', title: 'B', completed: false, createdAt: new Date() };
+  const TASK_C = { id: 'task-c', listId: 'list-1', userId: 'user-1', title: 'C', completed: false, createdAt: new Date() };
+  const TASK_D = { id: 'task-d', listId: 'list-1', userId: 'user-1', title: 'D', completed: false, createdAt: new Date() };
+
+  it('rejects indirect cycle A->B->C then C->A', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK_C)
+      .mockResolvedValueOnce(TASK_A);
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    mockPrisma.taskDependency.findMany.mockResolvedValue([
+      { blockedTaskId: 'task-a', blockingTaskId: 'task-b' },
+      { blockedTaskId: 'task-b', blockingTaskId: 'task-c' },
+    ]);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-c/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-a' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('Dependency would create a cycle');
+    expect(res.body.cycle).toBeDefined();
+    expect(res.body.cycle.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('rejects long chain cycle A->B->C->D then D->A', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK_D)
+      .mockResolvedValueOnce(TASK_A);
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    mockPrisma.taskDependency.findMany.mockResolvedValue([
+      { blockedTaskId: 'task-a', blockingTaskId: 'task-b' },
+      { blockedTaskId: 'task-b', blockingTaskId: 'task-c' },
+      { blockedTaskId: 'task-c', blockingTaskId: 'task-d' },
+    ]);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-d/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-a' });
+    expect(res.status).toBe(409);
+    expect(res.body.cycle).toBeDefined();
+    expect(res.body.cycle.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('allows non-cycle: A->B and A->C', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK_A)
+      .mockResolvedValueOnce(TASK_C);
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    mockPrisma.taskDependency.findMany.mockResolvedValue([
+      { blockedTaskId: 'task-a', blockingTaskId: 'task-b' },
+    ]);
+    const dep = { blockingTaskId: 'task-c', blockedTaskId: 'task-a', createdAt: new Date() };
+    mockPrisma.taskDependency.create.mockResolvedValue(dep);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-a/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-c' });
+    expect(res.status).toBe(201);
+  });
+
+  it('cycle response includes cycle path', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK_A)
+      .mockResolvedValueOnce(TASK_B);
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    mockPrisma.taskDependency.findMany.mockResolvedValue([
+      { blockedTaskId: 'task-b', blockingTaskId: 'task-a' },
+    ]);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-a/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-b' });
+    expect(res.status).toBe(409);
+    expect(res.body.cycle).toContain('task-a');
+    expect(res.body.cycle).toContain('task-b');
+  });
+});
+
+describe('POST /api/tasks/lists/:listId/tasks/:taskId/dependencies — ownership', () => {
+  it('returns 404 when blocking task belongs to another user', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK)
+      .mockResolvedValueOnce({ ...TASK, id: 'task-2', userId: 'other-user' });
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Blocking task not found');
+  });
+
+  it('returns 404 when blocked task belongs to another user', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue({ ...TASK, userId: 'other-user' });
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Task not found');
+  });
+});
+
 describe('GET /api/tasks/lists/:listId/tasks/:taskId with dependencies', () => {
   it('returns isBlocked true when has incomplete blocking task', async () => {
     const task = {
@@ -1214,5 +1321,47 @@ describe('GET /api/tasks/lists/:listId/tasks/:taskId with dependencies', () => {
       .set('Cookie', authCookie('user-1'));
     expect(res.status).toBe(200);
     expect(res.body.task.isBlocked).toBe(false);
+  });
+
+  it('returns blocking array with tasks this task blocks', async () => {
+    const task = {
+      ...TASK,
+      blocking: [
+        { blockedTask: { id: 'task-3', title: 'Downstream', completed: false, listId: 'list-1' } },
+      ],
+      blockedBy: [],
+    };
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(task);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(200);
+    expect(res.body.task.blocking).toHaveLength(1);
+    expect(res.body.task.blocking[0].id).toBe('task-3');
+    expect(res.body.task.isBlocked).toBe(false);
+  });
+
+  it('returns both blocking and blockedBy arrays', async () => {
+    const task = {
+      ...TASK,
+      blocking: [
+        { blockedTask: { id: 'task-3', title: 'Downstream', completed: false, listId: 'list-1' } },
+      ],
+      blockedBy: [
+        { blockingTask: { id: 'task-2', title: 'Upstream', completed: false, listId: 'list-1' } },
+      ],
+    };
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(task);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(200);
+    expect(res.body.task.blocking).toHaveLength(1);
+    expect(res.body.task.blockedBy).toHaveLength(1);
+    expect(res.body.task.isBlocked).toBe(true);
   });
 });
