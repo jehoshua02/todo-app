@@ -246,6 +246,121 @@ async function deleteTask(req: Request, res: Response): Promise<void> {
   res.status(204).end();
 }
 
+async function detectCycle(userId: string, blockedTaskId: string, blockingTaskId: string): Promise<string[] | null> {
+  const deps = await prisma.taskDependency.findMany({
+    where: {
+      blockedTask: { userId },
+    },
+    select: { blockedTaskId: true, blockingTaskId: true },
+  });
+
+  const graph = new Map<string, string[]>();
+  for (const d of deps) {
+    const edges = graph.get(d.blockedTaskId) || [];
+    edges.push(d.blockingTaskId);
+    graph.set(d.blockedTaskId, edges);
+  }
+
+  if (!graph.has(blockedTaskId)) {
+    graph.set(blockedTaskId, []);
+  }
+  const existing = graph.get(blockedTaskId)!;
+  existing.push(blockingTaskId);
+
+  const visited = new Set<string>();
+  const path: string[] = [];
+
+  function dfs(node: string): boolean {
+    if (visited.has(node)) return false;
+    visited.add(node);
+    path.push(node);
+    for (const neighbor of graph.get(node) || []) {
+      if (neighbor === blockedTaskId) {
+        path.push(neighbor);
+        return true;
+      }
+      if (dfs(neighbor)) return true;
+    }
+    path.pop();
+    visited.delete(node);
+    return false;
+  }
+
+  if (dfs(blockedTaskId)) return path;
+  return null;
+}
+
+async function addDependency(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const { taskId } = req.params;
+  const { blockingTaskId } = req.body;
+
+  if (!blockingTaskId || typeof blockingTaskId !== 'string') {
+    res.status(400).json({ error: 'blockingTaskId is required' });
+    return;
+  }
+
+  if (taskId === blockingTaskId) {
+    res.status(400).json({ error: 'A task cannot depend on itself' });
+    return;
+  }
+
+  const blockedTask = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!blockedTask || blockedTask.userId !== userId) {
+    res.status(404).json({ error: 'Task not found' });
+    return;
+  }
+
+  const blockingTask = await prisma.task.findUnique({ where: { id: blockingTaskId } });
+  if (!blockingTask || blockingTask.userId !== userId) {
+    res.status(404).json({ error: 'Blocking task not found' });
+    return;
+  }
+
+  const existing = await prisma.taskDependency.findUnique({
+    where: { blockingTaskId_blockedTaskId: { blockingTaskId, blockedTaskId: taskId } },
+  });
+  if (existing) {
+    res.status(200).json({ dependency: existing });
+    return;
+  }
+
+  const cycle = await detectCycle(userId, taskId, blockingTaskId);
+  if (cycle) {
+    res.status(409).json({ error: 'Dependency would create a cycle', cycle });
+    return;
+  }
+
+  const dependency = await prisma.taskDependency.create({
+    data: { blockingTaskId, blockedTaskId: taskId },
+  });
+  res.status(201).json({ dependency });
+}
+
+async function removeDependency(req: Request, res: Response): Promise<void> {
+  const userId = req.userId!;
+  const { taskId, blockingTaskId } = req.params;
+
+  const blockedTask = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!blockedTask || blockedTask.userId !== userId) {
+    res.status(404).json({ error: 'Task not found' });
+    return;
+  }
+
+  const existing = await prisma.taskDependency.findUnique({
+    where: { blockingTaskId_blockedTaskId: { blockingTaskId, blockedTaskId: taskId } },
+  });
+  if (!existing) {
+    res.status(404).json({ error: 'Dependency not found' });
+    return;
+  }
+
+  await prisma.taskDependency.delete({
+    where: { blockingTaskId_blockedTaskId: { blockingTaskId, blockedTaskId: taskId } },
+  });
+  res.status(204).end();
+}
+
 async function getTask(req: Request, res: Response): Promise<void> {
   const userId = req.userId!;
   const { listId, taskId } = req.params;
@@ -256,13 +371,32 @@ async function getTask(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const task = await findUserTask(taskId, listId, userId);
-  if (!task) {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: {
+      blocking: {
+        select: {
+          blockedTask: { select: { id: true, title: true, completed: true, listId: true } },
+        },
+      },
+      blockedBy: {
+        select: {
+          blockingTask: { select: { id: true, title: true, completed: true, listId: true } },
+        },
+      },
+    },
+  });
+  if (!task || task.listId !== listId || task.userId !== userId) {
     res.status(404).json({ error: 'Task not found' });
     return;
   }
 
-  res.json({ task });
+  const blocking = task.blocking.map((d) => d.blockedTask);
+  const blockedBy = task.blockedBy.map((d) => d.blockingTask);
+  const isBlocked = blockedBy.some((t) => !t.completed);
+
+  const { blocking: _b, blockedBy: _bb, ...taskData } = task;
+  res.json({ task: { ...taskData, blocking, blockedBy, isBlocked } });
 }
 
 function validateTaskIds(taskIds: unknown): { valid: true; ids: string[] } | { valid: false; error: string } {
@@ -330,3 +464,5 @@ tasksRouter.post('/', createTask);
 tasksRouter.put('/reorder', reorderTasks);
 tasksRouter.patch('/:taskId', updateTask);
 tasksRouter.delete('/:taskId', deleteTask);
+tasksRouter.post('/:taskId/dependencies', addDependency);
+tasksRouter.delete('/:taskId/dependencies/:blockingTaskId', removeDependency);

@@ -34,8 +34,22 @@ model Task {
   position     Int       @default(0)
   createdAt    DateTime  @default(now()) @map("created_at")
   list         List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  blocking     TaskDependency[] @relation("BlockingTask")
+  blockedBy    TaskDependency[] @relation("BlockedTask")
 
   @@index([listId])
   @@index([userId])
   @@map("tasks")
+}
+
+model TaskDependency {
+  blockingTaskId String   @map("blocking_task_id")
+  blockedTaskId  String   @map("blocked_task_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  blockingTask   Task     @relation("BlockingTask", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+  blockedTask    Task     @relation("BlockedTask", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+
+  @@id([blockingTaskId, blockedTaskId])
+  @@index([blockedTaskId])
+  @@map("task_dependencies")
 }

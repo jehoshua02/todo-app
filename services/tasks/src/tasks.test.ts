@@ -15,6 +15,12 @@ vi.mock('./db', () => ({
       delete: vi.fn(),
       aggregate: vi.fn(),
     },
+    taskDependency: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -183,6 +189,7 @@ describe('GET /api/tasks/lists/:listId/tasks/:taskId', () => {
       id: 'task-1', listId: 'list-1', userId: 'user-1', title: 'Buy milk',
       description: 'Whole milk', dueDate: new Date('2026-06-15T00:00:00Z'),
       completed: false, createdAt: new Date('2026-01-01'),
+      blocking: [], blockedBy: [],
     };
     mockPrisma.list.findUnique.mockResolvedValue(LIST);
     mockPrisma.task.findUnique.mockResolvedValue(task);
@@ -196,6 +203,9 @@ describe('GET /api/tasks/lists/:listId/tasks/:taskId', () => {
     expect(res.body.task.title).toBe('Buy milk');
     expect(res.body.task.description).toBe('Whole milk');
     expect(res.body.task.completed).toBe(false);
+    expect(res.body.task.isBlocked).toBe(false);
+    expect(res.body.task.blocking).toEqual([]);
+    expect(res.body.task.blockedBy).toEqual([]);
   });
 });
 
@@ -1031,5 +1041,178 @@ describe('PUT /api/tasks/lists/:listId/tasks/reorder', () => {
     expect(res.body.tasks[0].id).toBe('t2');
     expect(res.body.tasks[1].id).toBe('t1');
     expect(mockPrisma.$transaction).toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/tasks/lists/:listId/tasks/:taskId/dependencies', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when blockingTaskId is missing', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for self-dependency', async () => {
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-1' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('A task cannot depend on itself');
+  });
+
+  it('returns 404 when blocked task not found', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue(null);
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when blocking task not found', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK)
+      .mockResolvedValueOnce(null);
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Blocking task not found');
+  });
+
+  it('returns 200 for idempotent create', async () => {
+    const dep = { blockingTaskId: 'task-2', blockedTaskId: 'task-1', createdAt: new Date() };
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK)
+      .mockResolvedValueOnce({ ...TASK, id: 'task-2' });
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(dep);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 409 when cycle detected', async () => {
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK)
+      .mockResolvedValueOnce({ ...TASK, id: 'task-2' });
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    mockPrisma.taskDependency.findMany.mockResolvedValue([
+      { blockedTaskId: 'task-2', blockingTaskId: 'task-1' },
+    ]);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('Dependency would create a cycle');
+  });
+
+  it('creates dependency successfully', async () => {
+    const dep = { blockingTaskId: 'task-2', blockedTaskId: 'task-1', createdAt: new Date() };
+    mockPrisma.task.findUnique
+      .mockResolvedValueOnce(TASK)
+      .mockResolvedValueOnce({ ...TASK, id: 'task-2' });
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    mockPrisma.taskDependency.findMany.mockResolvedValue([]);
+    mockPrisma.taskDependency.create.mockResolvedValue(dep);
+
+    const res = await request(app)
+      .post('/api/tasks/lists/list-1/tasks/task-1/dependencies')
+      .set('Cookie', authCookie('user-1'))
+      .send({ blockingTaskId: 'task-2' });
+    expect(res.status).toBe(201);
+    expect(res.body.dependency.blockingTaskId).toBe('task-2');
+  });
+});
+
+describe('DELETE /api/tasks/lists/:listId/tasks/:taskId/dependencies/:blockingTaskId', () => {
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1/dependencies/task-2');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 404 when task not found', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue(null);
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1/dependencies/task-2')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when dependency not found', async () => {
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(null);
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1/dependencies/task-2')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Dependency not found');
+  });
+
+  it('deletes dependency successfully', async () => {
+    const dep = { blockingTaskId: 'task-2', blockedTaskId: 'task-1' };
+    mockPrisma.task.findUnique.mockResolvedValue(TASK);
+    mockPrisma.taskDependency.findUnique.mockResolvedValue(dep);
+    mockPrisma.taskDependency.delete.mockResolvedValue(dep);
+    const res = await request(app)
+      .delete('/api/tasks/lists/list-1/tasks/task-1/dependencies/task-2')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(204);
+  });
+});
+
+describe('GET /api/tasks/lists/:listId/tasks/:taskId with dependencies', () => {
+  it('returns isBlocked true when has incomplete blocking task', async () => {
+    const task = {
+      ...TASK,
+      blocking: [],
+      blockedBy: [
+        { blockingTask: { id: 'task-2', title: 'Blocker', completed: false, listId: 'list-1' } },
+      ],
+    };
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(task);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(200);
+    expect(res.body.task.isBlocked).toBe(true);
+    expect(res.body.task.blockedBy).toHaveLength(1);
+    expect(res.body.task.blockedBy[0].id).toBe('task-2');
+  });
+
+  it('returns isBlocked false when all blockers completed', async () => {
+    const task = {
+      ...TASK,
+      blocking: [],
+      blockedBy: [
+        { blockingTask: { id: 'task-2', title: 'Done blocker', completed: true, listId: 'list-1' } },
+      ],
+    };
+    mockPrisma.list.findUnique.mockResolvedValue(LIST);
+    mockPrisma.task.findUnique.mockResolvedValue(task);
+
+    const res = await request(app)
+      .get('/api/tasks/lists/list-1/tasks/task-1')
+      .set('Cookie', authCookie('user-1'));
+    expect(res.status).toBe(200);
+    expect(res.body.task.isBlocked).toBe(false);
   });
 });
